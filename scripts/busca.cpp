@@ -35,6 +35,12 @@ struct Bucket {
 const int BLOCK_SIZE = 4096;
 const int NUM_BUCKETS = 100;
 
+int hashFunction(int id){
+    int index = (37 * id) % NUM_BUCKETS;
+    cout << "Hash function: " << index << endl;
+    return index;
+}
+
 void buscaRegistro(int idBusca){
     // Abertura do arquivo de dados
     ifstream dataFile("data.bin", ios::binary | ios::in);
@@ -44,7 +50,7 @@ void buscaRegistro(int idBusca){
     }
 
     // Busca de registro por ID
-    int bucketIndex = idBusca % NUM_BUCKETS; // Cálculo do índice do bucket
+    int bucketIndex = hashFunction(idBusca); // Cálculo do índice do bucket
     dataFile.seekg(bucketIndex * sizeof(Bucket)); // Posicionamento do ponteiro do arquivo
     Bucket bucket; // Declaração do bucket para leitura do arquivo
     dataFile.read((char*)&bucket, sizeof(Bucket)); // Leitura do bloco do arquivo
