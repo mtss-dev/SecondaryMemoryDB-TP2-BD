@@ -3,17 +3,18 @@
 
 #include "../Bucket/bucket.h"
 #include "../Constantes/constantes.h"
+#include "iostream"
 
 struct HashTable {
     Bucket* buckets[NUM_BUCKETS];
     int quantidade_registros;
 };
 
-HashTable* criarHashTable() {
+HashTable* criarHashTable(ofstream& dataFile) {
     HashTable* hashTable = new HashTable();
     hashTable->quantidade_registros = 0;
     for (int i = 0; i < NUM_BUCKETS; i++) {
-        hashTable->buckets[i] = criarBucket();
+        hashTable->buckets[i] = criarBucket(dataFile);
     }
     return hashTable;
 }
