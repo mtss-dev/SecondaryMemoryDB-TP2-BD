@@ -1,74 +1,13 @@
 #include <iostream>
 #include <fstream>
 #include <cstring>
-#include <list>
 #include "Registro/registro.h"
+#include "Constantes/constantes.h"
+#include "Bloco/bloco.h"
+#include "Bucket/bucket.h"
+#include "Hash/hash.h"
 
 using namespace std;
-// Definir o tamanho do bloco e de Buckets
-const int BLOCK_SIZE = 4096;
-const int NUM_BUCKETS = 100;
-const int NUM_BLOCKS = 5;
-
-struct BlocoCabecalho {
-    int index_bucket;
-    int quantidade_registros;
-    int tamanho_disponivel;
-    list<int> posicoes_registros;
-};
-
-BlocoCabecalho* criarBlocoCabecalho() {
-    BlocoCabecalho* cabecalho = new BlocoCabecalho();
-    cabecalho->quantidade_registros = 0;
-    cabecalho->tamanho_disponivel = 4096;
-    cabecalho->posicoes_registros = {0};
-    return cabecalho;
-}
-
-// Definição da estrutura do bloco
-struct Bloco {
-    BlocoCabecalho* cabecalho;
-    unsigned char dados[4096];
-};
-
-Bloco* criarBloco() {
-    Bloco* bloco = new Bloco();
-    bloco->cabecalho = criarBlocoCabecalho();
-    return bloco;
-}
-
-// Definição da estrutura do bucket
-struct Bucket {
-    int quatidade_blocos = 0;
-    list<Bloco*> blocos;
-};
-
-Bucket* criarBucket() {
-    Bucket* bucket = new Bucket();
-    return bucket;
-}
-
-struct HashTable {
-    Bucket* buckets[NUM_BUCKETS];
-    int quantidade_registros;
-};
-
-HashTable* criarHashTable() {
-    HashTable* hashTable = new HashTable();
-    hashTable->quantidade_registros = 0;
-    for (int i = 0; i < NUM_BUCKETS; i++) {
-        hashTable->buckets[i] = criarBucket();
-    }
-    return hashTable;
-}
-
-//Função para calcular o hash
-int hashFunction(int id){
-    int index = (37 * id) % NUM_BUCKETS;
-    return index;
-}
-
-
 
 void imprimirRegistrosBloco(Bloco* bloco) {
     int posicaoAtual = 0;
@@ -181,6 +120,131 @@ void inserir_registro_bucket(HashTable* hashtable, Registro* registro) {
     }
 }
 
+Registro* buscarRegistro(Bucket* bucket, int valorBusca) {
+
+    ifstream dataFile("fdp.bin", ios::binary);
+
+    // Verifica se o arquivo foi aberto corretamente
+    if (!dataFile.is_open()) {
+        cerr << "Não foi possível abrir o arquivo data.bin" << endl;
+        exit(1);
+    }
+
+    // Calcula o índice do bucket correspondente ao valor de busca
+    int indiceBucket = hashFunction(valorBusca);
+
+    // Posiciona o ponteiro de leitura do arquivo no início do bucket
+    dataFile.seekg(indiceBucket * sizeof(Bucket), ios::beg);
+
+    // Lê o cabeçalho do bucket
+    int quantidadeBlocos;
+    dataFile.read((char*) &quantidadeBlocos, sizeof(int));
+
+    // Para cada bloco no bucket
+    for (int i = 0; i < quantidadeBlocos; i++) {
+        // Lê o bloco do arquivo
+        Bloco* bloco = new Bloco();
+        dataFile.read((char*) bloco->dados, sizeof(Bloco));
+
+        // Percorre os registros do bloco
+        int posicaoAtual = 0;
+        int blocosLidos = 0;
+        while (blocosLidos < bloco->cabecalho->quantidade_registros) {
+            int posicaoAtual = 0;
+            int registros_lidos = 0;
+            Registro* registro = new Registro();
+
+            while (registros_lidos < bloco->cabecalho->quantidade_registros) {
+                // Deserializa o próximo registro no bloco
+                memcpy(&registro->id, &bloco->dados[posicaoAtual], sizeof(int));
+                posicaoAtual += sizeof(int);
+
+                registro->title = string((char*)&bloco->dados[posicaoAtual]);
+                posicaoAtual += registro->title.size()+1;
+
+                memcpy(&registro->year, &bloco->dados[posicaoAtual], 2);
+                posicaoAtual += sizeof(int);
+
+                registro->authors = string((char*)&bloco->dados[posicaoAtual]);
+                posicaoAtual += registro->authors.size()+1;
+
+                memcpy(&registro->citations, &bloco->dados[posicaoAtual],1);
+                posicaoAtual += sizeof(int);
+
+                registro->update = string((char*)&bloco->dados[posicaoAtual]);
+                posicaoAtual += registro->update.size()+1;
+
+                registro->snippet = string((char*)&bloco->dados[posicaoAtual]);
+                posicaoAtual += registro->snippet.size()+1;
+
+                
+                registro->tamanho = registro->title.size() + sizeof(int) + registro->authors.size() + sizeof(int) + sizeof(int) + registro->update.size() + registro->snippet.size() + 4;
+
+                // Verifica se o registro é o que estamos procurando
+                if (registro->id == valorBusca) {
+                    // Retorna o registro encontrado
+                    delete registro;
+                    return registro;
+                }
+
+                registros_lidos++;
+            }
+
+            blocosLidos++;
+            delete registro;
+        }
+
+        // Registro não encontrado
+        return nullptr;
+    }
+}
+
+// Registro* buscarRegistro(Bucket* bucket, int id) {
+//     // Percorre todos os blocos do bucket
+//     for (int i = 0; i < bucket->quatidade_blocos; i++) {
+//         Bloco* bloco = bucket->blocos[i];
+//         int posicaoAtual = 0;
+//         int blocos_lidos = 0;
+//         while (blocos_lidos < bloco->cabecalho->quantidade_registros) {
+//             // Deserializa o próximo registro no bloco
+//             int registro_id;
+//             memcpy(&registro_id, &bloco->dados[posicaoAtual], sizeof(int));
+//             posicaoAtual += sizeof(int);
+//             string title = string((char*)&bloco->dados[posicaoAtual]);
+//             posicaoAtual += title.size()+1;
+//             string year = string((char*)&bloco->dados[posicaoAtual]);
+//             posicaoAtual +=year.size()+1;
+//             string authors = string((char*)&bloco->dados[posicaoAtual]);
+//             posicaoAtual += authors.size()+1;
+//             int citations;
+//             memcpy(&citations, &bloco->dados[posicaoAtual], sizeof(int));
+//             posicaoAtual += sizeof(int);
+//             string update = string((char*)&bloco->dados[posicaoAtual]);
+//             posicaoAtual += update.size()+1;
+//             string snippet = string((char*)&bloco->dados[posicaoAtual]);
+//             posicaoAtual += snippet.size()+1;
+
+//             // Verifica se o registro encontrado corresponde ao ID desejado
+//             if (registro_id == id) {
+//                 Registro* registro = new Registro();
+//                 registro->id = registro_id;
+//                 registro->title = title;
+//                 registro->year = year;
+//                 registro->authors = authors;
+//                 registro->citations = citations;
+//                 registro->update = update;
+//                 registro->snippet = snippet;
+//                 return registro;
+//             }
+
+//             blocos_lidos++;
+//         }
+//     }
+//     // Se o registro não foi encontrado, retorna NULL
+//     return NULL;
+// }
+
+
 int main(int argc, char const *argv[])
 {
     // Criação do arquivo de dados
@@ -223,6 +287,18 @@ int main(int argc, char const *argv[])
 
     // Fechamento do arquivo de dados
     dataFile.close();
+
+    int idBucado;
+    cin >> idBucado;
+    while (idBucado != -1) {
+        Registro* registro = buscarRegistro(hashTable->buckets[0], idBucado);
+        if (registro != nullptr) {
+            cout << "Registro encontrado: " << registro->id << endl;
+        } else {
+            cout << "Registro não encontrado!" << endl;
+        }
+        cin >> idBucado;
+    }
     
     return 0;
 }
