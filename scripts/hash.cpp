@@ -2,51 +2,13 @@
 #include <fstream>
 #include <cstring>
 #include <list>
+#include "Registro/registro.h"
 
 using namespace std;
 // Definir o tamanho do bloco e de Buckets
 const int BLOCK_SIZE = 4096;
 const int NUM_BUCKETS = 100;
 const int NUM_BLOCKS = 5;
-
-// Definição da estrutura do registro
-struct Registro {
-    int id;
-    string title;
-    int year;
-    string authors;
-    int citations;
-    string update;
-    string snippet;
-    int tamanho;
-};
-
-
-Registro* criarRegistro(int id, string title, int year, string authors, int citations, string update, string snippet) {
-    Registro* registro = new Registro();
-    registro->id = id;
-    registro->title = title;
-    registro->year = year;
-    registro->authors = authors;
-    registro->citations = citations;
-    registro->update = update;
-    registro->snippet = snippet;
-    registro->tamanho = registro->title.size() + 4 + sizeof(int) + sizeof(int) + registro->authors.size() + sizeof(int) + sizeof(int) + registro->update.size() + registro->snippet.size();
-    return registro;
-}
-
-void imprimeRegistro(Registro registro) {
-    cout << "------------------------" << endl;
-    cout << "ID: " << registro.id << endl;
-    cout << "Titulo: " << registro.title << endl;
-    cout << "Ano: " << registro.year << endl;
-    cout << "Autores: " << registro.authors << endl;
-    cout << "Citacoes: " << registro.citations << endl;
-    cout << "Atualizacao: " << registro.update << endl;
-    cout << "Snippet: " << registro.snippet << endl;
-    cout << "Tamanho: " << registro.tamanho << endl;
-    cout << "------------------------" << endl;
-}
 
 struct BlocoCabecalho {
     int index_bucket;
@@ -105,6 +67,8 @@ int hashFunction(int id){
     int index = (37 * id) % NUM_BUCKETS;
     return index;
 }
+
+
 
 void imprimirRegistrosBloco(Bloco* bloco) {
     int posicaoAtual = 0;
@@ -183,10 +147,10 @@ void inserir_registro_bloco(Bloco* bloco, Registro* registro) {
     
     // adiciona a posição do novo registro à lista de posições no cabeçalho
     bloco->cabecalho->posicoes_registros.push_back(posicao);
-    if(bloco->cabecalho->quantidade_registros > 1){
-        imprimirRegistrosBloco(bloco);
-    }
 }
+
+int cont = 0;
+bool cheio = false;
 
 // Função para inserir um registro na tabela hash
 void inserir_registro_bucket(HashTable* hashtable, Registro* registro) {
@@ -195,6 +159,7 @@ void inserir_registro_bucket(HashTable* hashtable, Registro* registro) {
     for (Bloco* bloco : bucket->blocos) {
         if (bloco->cabecalho->tamanho_disponivel >= registro->tamanho) {
             inserir_registro_bloco(bloco,registro); // adiciona o registro ao bloco
+            cont++;
             return;
         }
     }
@@ -210,6 +175,8 @@ void inserir_registro_bucket(HashTable* hashtable, Registro* registro) {
         return;
     }else{
         cout << "Bucket cheio" << endl;
+        cout << "Total de registros inseridos: " << cont << endl;
+        cheio = true;
         return;
     }
 }
@@ -217,7 +184,7 @@ void inserir_registro_bucket(HashTable* hashtable, Registro* registro) {
 int main(int argc, char const *argv[])
 {
     // Criação do arquivo de dados
-    ofstream dataFile("data.bin", ios::binary | ios::out);
+    ofstream dataFile("fdp.bin", ios::binary | ios::out);
     if (!dataFile) {
         cerr << "Erro ao criar o arquivo de dados!" << endl;
         return 1;
@@ -227,16 +194,20 @@ int main(int argc, char const *argv[])
     HashTable* hashTable = criarHashTable();
 
     //Inserção de registros de exemplo
-   //Loop para criar n registros
-    int n = 2;
-    for (int i = 1; i <= n; i++) {
-        string titulo = "Titulo " + to_string(i);
-        string autor = "Autor " + to_string(i);
-        string atualizacao = "Atualizacao " + to_string(i);
-        string snippet = "Snippet " + to_string(i);
-        Registro* rec = criarRegistro(i, titulo, 2020, autor, 10, atualizacao, snippet);
+    ifstream entry_file("artigo.csv");
 
-        inserir_registro_bucket(hashTable, rec);
+    // Leitura dos registros do arquivo de entrada
+    if (entry_file.is_open()) {
+        string line;
+        while (getline(entry_file, line)){
+            Registro* r = lineToRegister(line);
+            if(r != NULL){
+                inserir_registro_bucket(hashTable, r);
+            }
+            if(cheio){
+                break;
+            }
+        }
     }
 
     // Escrita dos buckets no arquivo de dados
@@ -247,6 +218,7 @@ int main(int argc, char const *argv[])
             dataFile.write((char*) bloco->dados, sizeof(bloco->dados));
         }
     }
+    cout << "Total de registros inseridos: " << cont << endl;
     cout << "Arquivo de dados criado com sucesso!" << endl;
 
     // Fechamento do arquivo de dados

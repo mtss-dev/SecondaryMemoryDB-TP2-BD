@@ -33,9 +33,8 @@
 
 # local files
 
-artigo.csv
-scripts/.vscode/settings.json
-scripts/.vscode/
-.vscode/
-scripts/output/
-teste.csv
+/scripts/.vscode/settings.json
+/scripts/.vscode/
+/scripts/output/
+/scripts/*.csv
+/scripts/*.bin

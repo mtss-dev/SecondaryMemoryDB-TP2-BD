@@ -1,0 +1,94 @@
+#ifndef REGISTRO_H
+#define REGISTRO_H
+
+#include <iostream>
+#include <fstream>
+#include <cstring>
+#include <vector>
+
+using namespace std;
+
+// Definição da estrutura do registro
+struct Registro {
+    int id;
+    string title;
+    int year;
+    string authors;
+    int citations;
+    string update;
+    string snippet;
+    int tamanho;
+};
+
+// Função para criar um registro
+Registro* criarRegistro(int id, string title, int year, string authors, int citations, string update, string snippet) {
+    Registro* registro = new Registro();
+    registro->id = id;
+    registro->title = title;
+    registro->year = year;
+    registro->authors = authors;
+    registro->citations = citations;
+    registro->update = update;
+    registro->snippet = snippet;
+    registro->tamanho = registro->title.size() + 4 + sizeof(int) + sizeof(int) + registro->authors.size() + sizeof(int) + sizeof(int) + registro->update.size() + registro->snippet.size();
+    return registro;
+}
+
+// Função para imprimir um registro
+void imprimeRegistro(Registro registro) {
+    cout << "------------------------" << endl;
+    cout << "ID: " << registro.id << endl;
+    cout << "Titulo: " << registro.title << endl;
+    cout << "Ano: " << registro.year << endl;
+    cout << "Autores: " << registro.authors << endl;
+    cout << "Citacoes: " << registro.citations << endl;
+    cout << "Atualizacao: " << registro.update << endl;
+    cout << "Snippet: " << registro.snippet << endl;
+    cout << "Tamanho: " << registro.tamanho << endl;
+    cout << "------------------------" << endl;
+}
+
+
+// Função para serializar um registro
+Registro* lineToRegister(string line){
+    vector<string> fields;
+    string field = "";
+    
+    for (int i = 0; i < line.length(); i++) {
+        if (line[i] < 0 || line[i] > 127) {
+            line[i] = ' '; // substitui por um espaço em branco
+        }
+    }
+
+    for (int i = 0; i < line.size()-1; i++){
+        if (line[i] == '"'){
+            i++;
+            while(!(line[i] == '"' && line[i+1] == ';') && i < line.size()-1){
+                
+                field += line[i];
+                i++;
+            }
+            fields.push_back(field);
+            field = "";
+        } else if (line[i] == 'N'){
+            fields.push_back("NULL");
+        }
+    }
+
+    if (fields.size() != 7){
+        // cout << fields[0] << endl;
+        // cout << "ERRO: faltou campos" << endl;
+        return NULL;
+    }
+    try{
+       return criarRegistro(stoi(fields[0]), fields[1], stoi(fields[2]), fields[3], stoi(fields[4]), fields[5], fields[6]);
+    }
+    catch(const std::exception& e){
+       
+        // cout << fields[0] << endl;
+        // cout << "ERRO: faltou campos, algum falhou na conversão" << endl;
+        return NULL;
+    }
+}
+
+#endif // REGISTRO_H
