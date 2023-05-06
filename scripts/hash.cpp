@@ -128,6 +128,7 @@ int main(int argc, char const *argv[])
 
     // Criação da tabela hash com tamanho NUNM_BUCKETS e armaazenamento no arquivo de dados
     HashTable* hashTable = criarHashTable(dataFile);
+    cout << "Tabela hash criada com sucesso!" << endl;
 
     dataFile.close();
 
@@ -156,6 +157,7 @@ int main(int argc, char const *argv[])
     dataFileI.close();
     // Fechamento do arquivo de saida
     dataFileO.close();
+    cout << "Total de registros inseridos: " << cont << endl;
 
     return 0;
 }
