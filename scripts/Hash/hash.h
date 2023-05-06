@@ -5,17 +5,19 @@
 #include "../Constantes/constantes.h"
 #include "iostream"
 
+// Definição da estrutura da hash table
 struct HashTable {
     Bucket* buckets[NUM_BUCKETS];
     // list<Bloco*> overflow;
     int quantidade_registros;
 };
 
+// Função para criar uma hash table
 HashTable* criarHashTable(ofstream& dataFile) {
     HashTable* hashTable = new HashTable();
     hashTable->quantidade_registros = 0;
     for (int i = 0; i < NUM_BUCKETS; i++) {
-        hashTable->buckets[i] = criarBucket(dataFile,i);
+        hashTable->buckets[i] = criarBucket(dataFile);
     }
     return hashTable;
 }
