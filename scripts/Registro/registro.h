@@ -60,17 +60,17 @@ Registro* lineToRegister(string line){
         }
     }
 
-    for (int i = 0; i < line.size()-1; i++){
+    for (int i = 0; i < line.size()-1; i++){    
+            
         if (line[i] == '"'){
             i++;
-            while(!(line[i] == '"' && line[i+1] == ';') && i < line.size()-1){
-                
+            while(!(line[i] == '"' && line[i+1] == ';') && i < line.size()-2){
                 field += line[i];
                 i++;
             }
             fields.push_back(field);
             field = "";
-        } else if (line[i] == 'N'){
+        } else if (line[i] == 'N' || (line[i] == ';' && line[i+1] == ';')){
             fields.push_back("NULL");
         }
     }
