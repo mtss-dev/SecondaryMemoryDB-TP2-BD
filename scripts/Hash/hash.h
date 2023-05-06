@@ -7,6 +7,7 @@
 
 struct HashTable {
     Bucket* buckets[NUM_BUCKETS];
+    // list<Bloco*> overflow;
     int quantidade_registros;
 };
 
@@ -14,7 +15,7 @@ HashTable* criarHashTable(ofstream& dataFile) {
     HashTable* hashTable = new HashTable();
     hashTable->quantidade_registros = 0;
     for (int i = 0; i < NUM_BUCKETS; i++) {
-        hashTable->buckets[i] = criarBucket(dataFile);
+        hashTable->buckets[i] = criarBucket(dataFile,i);
     }
     return hashTable;
 }

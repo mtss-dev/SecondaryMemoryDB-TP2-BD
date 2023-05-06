@@ -40,3 +40,4 @@
 /scripts/*.bin
 /scripts/*.txt
 .vscode/
+/scripts/teste.cpp

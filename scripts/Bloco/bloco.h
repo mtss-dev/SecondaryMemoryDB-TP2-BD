@@ -26,9 +26,10 @@ struct Bloco {
     unsigned char dados[BLOCK_SIZE];
 };
 
-Bloco* criarBloco() {
+Bloco* criarBloco(int index) {
     Bloco* bloco = new Bloco();
     bloco->cabecalho = criarBlocoCabecalho();
+    bloco->cabecalho->index_bucket = index;
     for(int i = 0; i < BLOCK_SIZE; i++) {
         bloco->dados[i] = 0;
     }
@@ -36,4 +37,4 @@ Bloco* criarBloco() {
     return bloco;
 }
 
-#endif BLOCO_H
+#endif
