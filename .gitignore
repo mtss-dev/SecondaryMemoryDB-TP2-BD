@@ -40,5 +40,5 @@
 /scripts/*.bin
 /scripts/*.txt
 .vscode/
-/scripts/teste.cpp
-/scripts/teste2.cpp
+/scripts/findrec
+/scripts/upload

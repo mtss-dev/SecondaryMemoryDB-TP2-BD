@@ -1,7 +1,6 @@
 #ifndef BLOCO_H
 #define BLOCO_H
 
-#include <list>
 #include "vector"
 
 using namespace std;
