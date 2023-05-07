@@ -44,7 +44,7 @@ void imprimeRegistro(Registro registro) {
     cout << "Citacoes: " << registro.citations << endl;
     cout << "Atualizacao: " << registro.update << endl;
     cout << "Snippet: " << registro.snippet << endl;
-    cout << "Tamanho: " << registro.tamanho << endl;
+    cout << "Tamanho do registro em bytes: " << registro.tamanho << endl;
     cout << "------------------------" << endl;
 }
 

@@ -57,7 +57,7 @@ void inserir_registro_bloco(ifstream& leitura, ofstream& escrita, BlocoCabecalho
     // Lê o bloco do arquivo
     Bloco* bloco = criarBloco(ultimo_bloco);
     leitura.seekg(index_bucket * BLOCK_SIZE * NUM_BLOCKS + (ultimo_bloco * BLOCK_SIZE) + sizeof(BlocoCabecalho));
-    leitura.read(reinterpret_cast<char*>(bloco->dados), BLOCK_SIZE);
+    leitura.read(reinterpret_cast<char*>(bloco->dados), BLOCK_SIZE - sizeof(BlocoCabecalho));
 
     // Insere o registro no bloco
     int posicao = cabecalho->posicoes_registros[cabecalho->quantidade_registros];
@@ -115,55 +115,159 @@ void inserir_registro_bucket(HashTable *hashtable, Registro *registro, ifstream 
             bucket->ultimo_bloco = 0;
             return;
         }else{
-            cout << "Registro de ID " << registro->id << " não cabe no bloco " << bucket->ultimo_bloco << endl;
-            cout << "Tamanho disponivel: " << tam << endl;
-            cout << "Tamanho do registro: " << registro->tamanho << endl;
+            // cout << "Registro de ID " << registro->id << " não cabe no bloco " << bucket->ultimo_bloco << endl;
+            // cout << "Tamanho disponivel: " << tam << endl;
+            // cout << "Tamanho do registro: " << registro->tamanho << endl;
             bucket->ultimo_bloco++;
         }
     }
-    cout << "Bucket cheio" << endl;
+    // cout << "Bucket cheio" << endl;
     cheio = true;
     return;
 }
 
-int main(int argc, char const *argv[])
-{
-    // Criação do arquivo de dados
-    ofstream dataFile("data.bin", ios::binary | ios::in | ios::out);
-    if (!dataFile) {
-        cerr << "Erro ao criar o arquivo de dados!" << endl;
-        return 1;
-    }
+Registro* buscar_registro(ifstream& leitura, int id_busca) {
+    // Variáveis para armazenar o cabeçalho e os dados de cada bloco
+    
+    // Percorre os blocos do bucket
+    for (int ultimo_bloco = 0; ultimo_bloco < NUM_BLOCKS; ultimo_bloco++) {
+        Bloco* bloco = criarBloco(ultimo_bloco);
+        // Lê o cabeçalho do bloco
+        int index_bucket = hashFunction(id_busca);
+        leitura.seekg(index_bucket * BLOCK_SIZE * NUM_BLOCKS + (ultimo_bloco * BLOCK_SIZE));
+        leitura.read(reinterpret_cast<char*>(bloco->cabecalho), sizeof(BlocoCabecalho));
+        leitura.read(reinterpret_cast<char*>(bloco->dados), BLOCK_SIZE - sizeof(BlocoCabecalho));
 
-    // Criação da tabela hash com tamanho NUNM_BUCKETS e armaazenamento no arquivo de dados
-    HashTable* hashTable = criarHashTable(dataFile);
-    cout << "Tabela hash criada com sucesso!" << endl;
-
-    //Inserção de registros de exemplo
-    ifstream entry_file("artigo.csv");
-    ifstream dataFileI("data.bin", ios::binary | ios::in);
-
-    // Leitura dos registros do arquivo de entrada
-    if (entry_file.is_open()) {
-        string line;
-        while (getline(entry_file, line)){
-            Registro* r = lineToRegister(line);
-            if(r != NULL){
-                inserir_registro_bucket(hashTable, r,dataFileI,dataFile);
+        // Verifica se há registros no bloco
+        if (bloco->cabecalho->quantidade_registros > 0) {
+            if(id_busca == 554){
+                cout << "Id do registro: " << id_busca << endl;
             }
-            if(cheio){
-                break;
+            // Verifica cada registro no bloco
+            Registro* registro = new Registro();
+            for (int i = 0; i < bloco->cabecalho->quantidade_registros; i++) {
+                int posicao = bloco->cabecalho->posicoes_registros[i];
+
+                // Verifica se o id do registro é igual ao id buscado
+                memcpy(&registro->id, &bloco->dados[posicao], sizeof(int));
+                if(registro->id == id_busca) {
+                    posicao = sizeof(int);
+                    // Deserializa o próximo registro no bloco
+                    registro->title = string((char *)&bloco->dados[posicao]);
+                    posicao += registro->title.size() + 1;
+
+                    memcpy(&registro->year, &bloco->dados[posicao], 2);
+                    posicao += sizeof(int);
+
+                    registro->authors = string((char *)&bloco->dados[posicao]);
+                    posicao += registro->authors.size() + 1;
+
+                    memcpy(&registro->citations, &bloco->dados[posicao], 1);
+                    posicao += sizeof(int);
+
+                    registro->update = string((char *)&bloco->dados[posicao]);
+                    posicao += registro->update.size() + 1;
+
+                    registro->snippet = string((char *)&bloco->dados[posicao]);
+                    posicao += registro->snippet.size() + 1;
+
+                    registro->tamanho = registro->title.size() + sizeof(int) + registro->authors.size() + sizeof(int) + sizeof(int) + registro->update.size() + registro->snippet.size() + 4;
+
+                    cout << "Quantidade de blocos lidos para encontrar o registro: " << ultimo_bloco + 1 << endl;
+                    cout << "Total de blocos no arquivo de dados: " << NUM_BLOCKS * NUM_BUCKETS << endl;
+
+                    // Libera a memória alocada para o bloco e o cabeçalho
+                    delete bloco;
+
+                    // Retorna o registro encontrado
+                    return registro;
+                }
             }
         }
+        delete bloco;
     }
 
-    // Fechamento do arquivo de entrada de registros
-    entry_file.close();
-    // Fechamento do arquivo de entrada de dados (Para leitura)
+    // Se o registro não for encontrado, libera a memória alocada para o bloco e o cabeçalho
+    // Retorna NULL se o registro não for encontrado
+    return nullptr;
+}
+
+
+int main(int argc, char const *argv[])
+{
+    // // Criação do arquivo de dados
+    // ofstream dataFile("data.bin", ios::binary | ios::in | ios::out);
+    // if (!dataFile) {
+    //     cerr << "Erro ao criar o arquivo de dados!" << endl;
+    //     return 1;
+    // }
+
+    // // Criação da tabela hash com tamanho NUNM_BUCKETS e armaazenamento no arquivo de dados
+    // HashTable* hashTable = criarHashTable(dataFile);
+    // cout << "Tabela hash criada com sucesso!" << endl;
+
+    // //Inserção de registros de exemplo
+    // ifstream entry_file("artigo.csv");
+    ifstream dataFileI("data.bin", ios::binary | ios::in);
+
+    // cout << "Inserindo registros no arquivo de dados..." << endl;
+    // vector<int> ids;
+    // // Leitura dos registros do arquivo de entrada
+    // if (entry_file.is_open()) {
+    //     string line;
+    //     while (getline(entry_file, line)){
+    //         Registro* r = lineToRegister(line);
+    //         if(r != NULL){
+    //             inserir_registro_bucket(hashTable, r,dataFileI,dataFile);
+    //             if(!cheio){
+    //                 ids.push_back(r->id);
+    //             }
+    //         }
+    //         if(cheio){
+    //             break;
+    //         }
+    //     }
+    // }
+
+    // cout << "Registros inseridos com sucesso!" << endl;
+    // cout << "Total de registros inseridos: " << cont << endl;
+
+    int id_busca;
+    cout << "Digite o ID do registro que deseja buscar (0) para sair: ";
+    cin >> id_busca;
+    while(id_busca != 0) {
+        Registro* registro_busca = buscar_registro(dataFileI, id_busca);
+        if(registro_busca != NULL) {
+            imprimeRegistro(*registro_busca);
+        } else {
+            cout << "Registro não encontrado!" << endl;
+        }
+        cout << "Digite o ID do registro que deseja buscar (0) para sair: ";
+        cin >> id_busca;
+    }
+
+    // cout << "Testando a busca de registros..." << endl;
+    // bool flag = true;
+    // for (int i = 0; i < ids.size(); i++){
+    //     Registro* registro_busca = buscar_registro(dataFileI, ids[i]);
+    //         if(registro_busca == NULL) {
+    //             cout << "Há problemas na busca!" << endl;
+    //             cout << "Registro de id " << i << " não encontrado!" << endl;
+    //             flag = false;
+    //             break;
+    //     }
+    // }
+    // if(flag){
+    //     cout << "Busca realizada com sucesso!" << endl;
+    // }
+
+    // // Fechamento do arquivo de entrada de registros
+    // entry_file.close();
+    //Fechamento do arquivo de entrada de dados (Para leitura)
     dataFileI.close();
     // Fechamento do arquivo de dados (Para escrita e leitura)
-    dataFile.close();
-    cout << "Total de registros inseridos: " << cont << endl;
+    // dataFile.close();
+
 
     return 0;
 }
