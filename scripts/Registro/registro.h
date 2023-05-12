@@ -80,6 +80,9 @@ Registro* lineToRegister(string line){
         // cout << "ERRO: faltou campos" << endl;
         return NULL;
     }
+    // for(int i = 0; i < fields.size(); i++){
+    //     cout << fields[i] << endl;
+    // }
     try{
        return criarRegistro(stoi(fields[0]), fields[1], stoi(fields[2]), fields[3], stoi(fields[4]), fields[5], fields[6]);
     }

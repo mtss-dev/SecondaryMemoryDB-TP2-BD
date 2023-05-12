@@ -80,7 +80,7 @@ void inserir_registro_bloco(ifstream& leitura, ofstream& escrita, BlocoCabecalho
 }
 
 // Função para inserir um registro em um bucket
-bool inserir_registro_bucket(HashTable *hashtable, BPlusTree* tree, Registro *registro, ifstream &entrada, ofstream &saida)
+bool inserir_registro_bucket(HashTable *hashtable, BPTree* tree, Registro *registro, ifstream &entrada, ofstream &saida)
 {
     int indice_bucket = hashFunction(registro->id); // calcula o índice do bucket apropriado
     Bucket *bucket = hashtable->buckets[indice_bucket];
@@ -89,9 +89,8 @@ bool inserir_registro_bucket(HashTable *hashtable, BPlusTree* tree, Registro *re
     {
         int tam = bloco->cabecalho->tamanho_disponivel;
         if (tam >= registro->tamanho)
-        { 
-            tree->insert(no_registro(registro->id, indice_bucket * BLOCK_SIZE * NUM_BLOCKS + (bucket->ultimo_bloco * BLOCK_SIZE)+(BLOCK_SIZE-bloco->cabecalho->tamanho_disponivel))); // adiciona o registro à árvore
-            cout << "Registro inserido na árvore" << endl;
+        {   
+            //tree->insert(registro->id, bloco_addr); // adiciona o registro à árvore
             inserir_registro_bloco(entrada, saida, bloco->cabecalho, registro, bucket->ultimo_bloco, indice_bucket); // adiciona o registro ao bloco
 
 
@@ -111,7 +110,8 @@ Registro* buscar_registro(ifstream& leitura, int id_busca) {
         Bloco* bloco = criarBloco(ultimo_bloco);
         // Lê o cabeçalho do bloco
         int index_bucket = hashFunction(id_busca);
-        leitura.seekg(index_bucket * BLOCK_SIZE * NUM_BLOCKS + (ultimo_bloco * BLOCK_SIZE));
+        int end = index_bucket * BLOCK_SIZE * NUM_BLOCKS + (ultimo_bloco * BLOCK_SIZE);
+        leitura.seekg(end);
         leitura.read(reinterpret_cast<char*>(bloco->cabecalho), sizeof(BlocoCabecalho));
         leitura.read(reinterpret_cast<char*>(bloco->dados), BLOCK_SIZE - sizeof(BlocoCabecalho));
 
@@ -125,6 +125,10 @@ Registro* buscar_registro(ifstream& leitura, int id_busca) {
                 // Verifica se o id do registro é igual ao id buscado
                 memcpy(&registro->id, &bloco->dados[posicao], sizeof(int));
                 if(registro->id == id_busca) {
+                    cout << "Endereço" << end << endl;
+                    cout << "Posição inicial no bloco: " << posicao << endl;
+                    cout << "Endereço do registro: " << end + posicao + sizeof(BlocoCabecalho) << endl;
+                    
                     posicao = sizeof(int);
                     // Deserializa o registro no bloco
                     registro->title = string((char *)&bloco->dados[posicao]);

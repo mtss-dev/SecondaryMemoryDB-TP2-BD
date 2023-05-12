@@ -1,443 +1,483 @@
 #ifndef BPLUS_TREE_H
 #define BPLUS_TREE_H
 
-#include "../Constantes/constantes.h"
-#include <iostream>
+#include <climits>
 #include <fstream>
-#include <vector>
-#include <cstdint>
-#include <cstring>
-
-    using namespace std;
-
-    // Definição da estrutura no_registro
-    struct no_registro {
-        int id; // Seria a "key"
-        int block_addr; // Endereço do bloco + posição do registro no arquivo de dados
-
-        no_registro() : id(0), block_addr(0) {}
-        no_registro(int _id, int _block_addr) : id(_id), block_addr(_block_addr) {}
-    };
-
-
-    // Definição da estrutura do nó da B+Tree
-    struct Node {
-        bool is_leaf;
-        vector<no_registro> registros;
-        vector<Node*> children;
-        Node* parent;
-
-        // Construtor atualizado
-        Node(bool leaf = false) : is_leaf(leaf), parent(nullptr) {}
-    };
-
-    // Classe da B+Tree
-    class BPlusTree {
-    private:
-        Node* root;
-
-    public:
-        BPlusTree() {
-            root = nullptr;
-        }
-
-        // Função para obter a raiz da B+Tree
-        Node* getRoot() const {
-            return root;
-        }
-
-        int getBlockAddr(int key) {
-            Node* current = root;
-            while (!current->is_leaf) {
-                int child_index = findChildIndex(current->registros, key);
-                current = current->children[child_index];
-            }
-
-            int index = findChildIndex(current->registros, key);
-            return current->registros[index].block_addr;
-        }
-
-        // Função para inserir um registro na B+Tree
-
-        void insert(const no_registro& registro) {
-            if (root == nullptr) {
-                root = new Node();
-                root->is_leaf = true;
-                root->registros.push_back(registro);
-            } else {
-                Node* current = root;
-                Node* parent = nullptr;
-
-                int child_index = 0;
-                while (!current->is_leaf) {
-                    parent = current;
-                    child_index = findChildIndex(current->registros, registro.id);
-                    current = current->children[child_index];
-                }
-
-                insertIntoLeaf(current, registro);
-
-                if (current->registros.size() > MAX_KEYS) {
-                    Node* new_leaf = splitLeaf(current, parent);
-                    parent->children.insert(parent->children.begin() + child_index + 1, new_leaf);
-                }
-            }
-        }
-
-
-        // Função auxiliar para encontrar o índice do filho correspondente a uma chave
-        int findChildIndex(vector<no_registro>& registros, int key) {
-            int index = 0;
-            while (index < registros.size() && registros[index].id <= key) {
-                index++;
-            }
-            return index;
-        }
-
-    // Função para serializar a árvore B+ em um vetor de bytes
-    vector<char> serialize() const {
-        vector<char> data;
-
-        // Serializar recursivamente a árvore
-        serializeNode(root, data);
-
-        return data;
-    }
-
-    // Função para desserializar a árvore B+ a partir de um vetor de bytes
-    void deserialize(const vector<char>& data) {
-        size_t pos = 0;
-
-        // Desserializar recursivamente a árvore
-        root = deserializeNode(data, pos);
-    }
-
-    // Função auxiliar para serializar um valor genérico em um vetor de bytes
-    template <typename T>
-    static vector<char> serializeValue(const T& value) {
-        vector<char> bytes;
-        const char* rawPtr = reinterpret_cast<const char*>(&value);
-        bytes.assign(rawPtr, rawPtr + sizeof(T));
-        return bytes;
-    }
-
-    // Função auxiliar para desserializar um valor genérico a partir de um vetor de bytes
-    template <typename T>
-    static T deserializeValue(const vector<char>& data, size_t& pos) {
-        T value;
-        memcpy(&value, &data[pos], sizeof(T));
-        pos += sizeof(T);
-        return value;
-    }
-
-    // Função auxiliar para serializar um nó da árvore
-    void serializeNode(const Node* node, vector<char>& data) const {
-        // Verificar se o nó é válido
-        if (node == nullptr)
-            return;
-
-        // Serializar o flag is_leaf
-        data.push_back(static_cast<char>(node->is_leaf));
-
-        // Serializar o número de registros
-        size_t num_registros = node->registros.size();
-        vector<char> num_registros_bytes = serializeValue(num_registros);
-        data.insert(data.end(), num_registros_bytes.begin(), num_registros_bytes.end());
-
-        // Serializar os registros
-        for (const auto& registro : node->registros) {
-            // Serializar cada campo do registro
-            vector<char> id_bytes = serializeValue(registro.id);
-            data.insert(data.end(), id_bytes.begin(), id_bytes.end());
-
-            vector<char> block_addr_bytes = serializeValue(registro.block_addr);
-            data.insert(data.end(), block_addr_bytes.begin(), block_addr_bytes.end());
-        }
-
-        // Serializar os ponteiros para os filhos
-        if (!node->is_leaf) {
-            for (const auto* child : node->children) {
-                // Serializar o ponteiro para o filho
-                serializeNode(child, data);
-            }
-        }
-    }
-
-    // Função auxiliar para desserializar um nó da árvore
-    Node* deserializeNode(const vector<char>& data, size_t& pos) const {
-        // Desserializar o flag is_leaf
-        bool is_leaf = data[pos++];
-
-        // Criar um novo nó
-        Node* node = new Node(is_leaf);
-
-        // Desserializar o número de registros
-        size_t num_registros = deserializeValue<size_t>(data, pos);
-
-        // Desserializar os registros
-        for (size_t i = 0; i < num_registros; ++i) {
-            // Desserializar cada campo do registro
-            int id = deserializeValue<int>(data, pos);
-            int block_addr = deserializeValue<int>(data, pos);
-
-            // Adicionar o registro ao nó
-            node->registros.emplace_back(id, block_addr);
-        }
-
-        // Desserializar os ponteiros para os filhos
-        if (!is_leaf) {
-            for (size_t i = 0; i < num_registros + 1; ++i) {
-                // Desserializar o ponteiro para o filho
-                Node* child = deserializeNode(data, pos);
-                node->children.push_back(child);
-                child->parent = node;
-            }
-        }
-
-        return node;
-    }
-
-    // Função para inserir um registro em um nó folha
-    void insertIntoLeaf(Node* leaf, const no_registro& registro) {
-        int index = 0;
-        while (index < leaf->registros.size() && leaf->registros[index].id < registro.id) {
-            index++;
-        }
-
-        leaf->registros.insert(leaf->registros.begin() + index, registro);
-
-        if (leaf->parent) {
-            leaf->parent->registros[index] = registro;
-        }
-    }
-
-
-
-
-    // Função para dividir um nó folha cheio
-    // Função para dividir um nó folha cheio
-    Node* splitLeaf(Node* leaf, Node* parent) {
-        Node* new_leaf = new Node();
-        new_leaf->is_leaf = true;
-
-        int split_index = leaf->registros.size() / 2;
-        int split_key = leaf->registros[split_index].id;
-
-        new_leaf->registros.assign(leaf->registros.begin() + split_index, leaf->registros.end());
-        leaf->registros.erase(leaf->registros.begin() + split_index, leaf->registros.end());
-
-        if (leaf == root) {
-            // Divisão do nó raiz
-            Node* newRoot = new Node(false);
-            Node* rightNode = new Node(false);
-            int midIndex = new_leaf->registros.size() / 2;
-            int midKey = new_leaf->registros[midIndex].id;
-
-            newRoot->registros.push_back({ midKey, -1 }); // Pode definir o valor do block_addr como desejado
-            newRoot->children.push_back(leaf);
-            newRoot->children.push_back(rightNode);
-
-            for (int i = midIndex + 1; i < new_leaf->registros.size(); i++) {
-                rightNode->registros.push_back(new_leaf->registros[i]);
-            }
-
-            new_leaf->registros.resize(midIndex);
-
-            leaf->parent = newRoot;
-            rightNode->parent = newRoot;
-
-            root = newRoot;
-        } else {
-            // O nó não é a raiz da árvore
-            int index = 0;
-            while (index < parent->children.size() && parent->children[index] != leaf) {
-                index++;
-            }
-
-            if (index == parent->children.size()) {
-                cerr << "Erro: Nó pai não contém o nó atual!" << endl;
-                return nullptr;
-            }
-
-            Node* leftSibling = nullptr;
-            Node* rightSibling = nullptr;
-
-            if (index > 0) {
-                leftSibling = parent->children[index - 1];
-            }
-
-            if (index < parent->children.size() - 1) {
-                rightSibling = parent->children[index + 1];
-            }
-
-            if (leftSibling && leftSibling->registros.size() < MAX_KEYS) {
-                // Transferir um registro do irmão esquerdo
-                new_leaf->registros.insert(new_leaf->registros.begin(), parent->registros[index - 1]);
-                parent->registros[index - 1] = leftSibling->registros.back();
-                leftSibling->registros.pop_back();
-            } else if (rightSibling && rightSibling->registros.size() < MAX_KEYS) {
-                // Transferir um registro do irmão direito
-                new_leaf->registros.push_back(parent->registros[index]);
-                parent->registros[index] = rightSibling->registros.front();
-                rightSibling->registros.erase(rightSibling->registros.begin());
-            } else if (leftSibling) {
-                // Mesclar com o irmão esquerdo
-            leftSibling->registros.push_back(parent->registros[index - 1]);
-            leftSibling->registros.insert(leftSibling->registros.end(), new_leaf->registros.begin(), new_leaf->registros.end());
-            parent->registros.erase(parent->registros.begin() + index - 1);
-            parent->children.erase(parent->children.begin() + index);
-
-            delete new_leaf;
-
-            balance(parent);
-        } else if (rightSibling) {
-            // Mesclar com o irmão direito
-            new_leaf->registros.push_back(parent->registros[index]);
-            new_leaf->registros.insert(new_leaf->registros.end(), rightSibling->registros.begin(), rightSibling->registros.end());
-            parent->registros.erase(parent->registros.begin() + index);
-            parent->children.erase(parent->children.begin() + index + 1);
-
-            delete rightSibling;
-
-            balance(parent);
-        }
-    }
-
-        return new_leaf;
-    }
-
-
-    // Função para realizar a busca de uma chave na B+Tree
-    bool search(Node* node, int key) {
-        if (node == nullptr)
-            return false;
-
-        int index = 0;
-        while (index < node->registros.size() && key > node->registros[index].id)
-            index++;
-
-        if (index < node->registros.size() && key == node->registros[index].id)
-            return true;
-        else if (node->is_leaf)
-            return false;
-        else
-            return search(node->children[index], key);
-    }
-
-    // Função para realizar o balanceamento de um nó na B+Tree
-    void balance(Node* node) {
-        cout << "Balanceando nó com " << node->registros.size() << " registros" << endl;
-        cout << "Máximo de registros: " << MAX_KEYS << endl;
-        if (node->registros.size() <= ORDER)
-            return;
-
-        Node* parent = node->parent;
-        if (parent == nullptr) {
-            // O nó é a raiz da árvore
-            if (node->registros.size() > ORDER){
-                // Divisão do nó raiz
-                Node* newRoot = new Node(false);
-                Node* rightNode = new Node(false);
-
-                int midIndex = node->registros.size() / 2;
-                int midKey = node->registros[midIndex].id;
-
-                newRoot->registros.push_back(no_registro(midKey, -1));
-                newRoot->children.push_back(node);
-                newRoot->children.push_back(rightNode);
-
-                for (int i = midIndex + 1; i < node->registros.size(); i++) {
-                    rightNode->registros.push_back(node->registros[i]);
-                    rightNode->children.push_back(node->children[i]);
-                }
-
-                node->registros.resize(midIndex);
-                node->children.resize(midIndex + 1);
-
-                node->parent = newRoot;
-                rightNode->parent = newRoot;
-
-                root = newRoot;
-            }
-        } else {
-            // O nó não é a raiz da árvore
-            int index = 0;
-            while (index < parent->children.size() && parent->children[index] != node)
-                index++;
-
-            if (index == parent->children.size()) {
-                cerr << "Erro: Nó pai não contém o nó atual!" << endl;
-                return;
-            }
-
-            Node* leftSibling = nullptr;
-            Node* rightSibling = nullptr;
-
-            if (index > 0)
-                leftSibling = parent->children[index - 1];
-
-            if (index < parent->children.size() - 1)
-                rightSibling = parent->children[index + 1];
-
-            if (leftSibling && leftSibling->registros.size() < MAX_KEYS) {
-                // Transferir um registro do irmão esquerdo
-                node->registros.insert(node->registros.begin(), parent->registros[index - 1]);
-                parent->registros[index - 1] = leftSibling->registros.back();
-
-                            if (!node->is_leaf)
-                    node->children.insert(node->children.begin(), leftSibling->children.back());
-
-                leftSibling->registros.pop_back();
-                if (!leftSibling->is_leaf)
-                    leftSibling->children.pop_back();
-            } else if (rightSibling && rightSibling->registros.size() < MAX_KEYS) {
-                // Transferir um registro do irmão direito
-                node->registros.push_back(parent->registros[index]);
-                parent->registros[index] = rightSibling->registros.front();
-                
-                if (!node->is_leaf)
-                    node->children.push_back(rightSibling->children.front());
-
-                rightSibling->registros.erase(rightSibling->registros.begin());
-                if (!rightSibling->is_leaf)
-                    rightSibling->children.erase(rightSibling->children.begin());
-            } else if (leftSibling) {
-                // Mesclar com o irmão esquerdo
-                leftSibling->registros.push_back(parent->registros[index - 1]);
-                for (int i = 0; i < node->registros.size(); i++) {
-                    leftSibling->registros.push_back(node->registros[i]);
-                    if (!leftSibling->is_leaf)
-                        leftSibling->children.push_back(node->children[i]);
-                }
-                if (!leftSibling->is_leaf)
-                    leftSibling->children.insert(leftSibling->children.end(), node->children.begin(), node->children.end());
-
-                parent->registros.erase(parent->registros.begin() + index - 1);
-                parent->children.erase(parent->children.begin() + index);
-
-                delete node;
-
-                balance(parent);
-            } else if (rightSibling) {
-                // Mesclar com o irmão direito
-                node->registros.push_back(parent->registros[index]);
-                for (int i = 0; i < rightSibling->registros.size(); i++) {
-                    node->registros.push_back(rightSibling->registros[i]);
-                    if (!node->is_leaf)
-                        node->children.push_back(rightSibling->children[i]);
-                }
-                if (!node->is_leaf)
-                    node->children.push_back(rightSibling->children.back());
-
-                parent->registros.erase(parent->registros.begin() + index);
-                parent->children.erase(parent->children.begin() + index + 1);
-
-                delete rightSibling;
-
-                balance(parent);
-            }
-        }
-    }
+#include <iostream>
+#include <sstream>
+#include "queue"
+#include "../Constantes/constantes.h"
+
+using namespace std;
+
+struct bp_registro
+{
+  int id;
+  int bloco_addr;
 };
+
+// BP node
+class Node
+{
+public:
+  bool IS_LEAF;
+  bp_registro *key;
+  int size;
+  Node **ptr;
+
+  Node();
+};
+
+// BP tree
+class BPTree
+{
+public:
+  //atributos da árvore B+
+  Node *root;
+  int order;
+
+  //função construtora
+  BPTree(int order)
+  {
+    root = nullptr;
+    this->order = order;
+    MAX = 2 * order;
+  }
+  //funções para serialização
+  void serializeNode(ofstream &file, Node *node);
+  void serializeTree(const string &filename);
+  void deserializeTree(const string &filename);
+
+  void deleteTree(Node *node);
+  
+  //funções da árvore B+
+  void search(int);
+  void insert(int, int);
+  void display(Node *, int);
+  Node *getRoot();
+  size_t calculateSize(Node *);
+  void insertInternal(bp_registro, Node *, Node *);
+  Node *findParent(Node *, Node *);
+};
+
+Node::Node() {
+  key = new bp_registro[MAX + 1];
+  ptr = new Node *[MAX + 1 + 1];  // +1 para o filho à esquerda de cada chave, +1 para o último ponteiro
+}
+
+// Search operation
+void BPTree::search(int x)
+{
+  if (root == nullptr)
+  {
+    cout << "Tree is empty\n";
+    return;
+  }
+
+  Node *cursor = root;
+  while (!cursor->IS_LEAF)
+  {
+    int i = 0;
+    while (i < cursor->size)
+    {
+      if (x < cursor->key[i].id)
+        break;
+      i++;
+    }
+
+    if (i == cursor->size) // Verifica se o índice está fora dos limites
+      i = cursor->size - 1; // Define o índice para o último ponteiro válido
+
+    cursor = cursor->ptr[i];
+  }
+
+  for (int i = 0; i < cursor->size; i++)
+  {
+    if (cursor->key[i].id == x)
+    {
+      cout << "Found\n";
+      return;
+    }
+  }
+
+  cout << "Not found\n";
+}
+
+
+// Insert Operation
+void BPTree::insert(int x, int y)
+{
+  if (root == NULL)
+  {
+    root = new Node;
+    root->key[0].id = x;
+    root->key[0].bloco_addr = y;
+    root->IS_LEAF = true;
+    root->size = 1;
+  }
+  else
+  {
+    if(x == 136421){
+      cout << "oi";
+    }
+    Node *cursor = root;
+    Node* parent = nullptr;
+    while (cursor->IS_LEAF == false)
+      {
+      parent = cursor;
+      for (int i = 0; i < cursor->size; i++)
+      {
+        if (x < cursor->key[i].id)
+        {
+          cursor = cursor->ptr[i];
+          break;
+        }
+        if (i == cursor->size - 1)
+        {
+          cursor = cursor->ptr[i + 1];
+          break;
+        }
+      }
+      if (cursor == nullptr)
+        {
+          break;  // Verificação adicionada para evitar acessar um ponteiro nulo
+        }
+      }
+
+    if (cursor != nullptr){
+      if (cursor->size < MAX)
+      {
+        int i = 0;
+        while (x > cursor->key[i].id && i < cursor->size)
+          i++;
+        for (int j = cursor->size; j > i; j--)
+        {
+          cursor->key[j] = cursor->key[j - 1];
+        }
+        cursor->key[i].id = x;
+        cursor->key[i].bloco_addr = y;
+        cursor->size++;
+        cursor->ptr[cursor->size] = cursor->ptr[cursor->size - 1];
+        cursor->ptr[cursor->size - 1] = NULL;
+      }
+      else
+      {
+        Node *newLeaf = new Node;
+        bp_registro virtualNode[MAX + 1];
+        for (int i = 0; i < MAX; i++)
+        {
+          virtualNode[i] = cursor->key[i];
+        }
+        int i = 0, j;
+        while (x > virtualNode[i].id && i < MAX)
+          i++;
+        for (int j = MAX + 1; j > i; j--)
+        {
+          virtualNode[j] = virtualNode[j - 1];
+        }
+        virtualNode[i].id = x;
+        virtualNode[i].bloco_addr = y;
+        newLeaf->IS_LEAF = true;
+        cursor->size = (MAX - 1) / 2;
+        newLeaf->size = MAX - cursor->size - 1;
+        cursor->ptr[cursor->size] = newLeaf;
+        newLeaf->ptr[newLeaf->size] = NULL; // Adicionar esta linha para inicializar o ponteiro corretamente
+        cursor->ptr[MAX] = NULL;
+        for (i = 0; i < cursor->size; i++)
+        {
+          cursor->key[i] = virtualNode[i];
+        }
+        for (i = 0, j = cursor->size; i < newLeaf->size; i++, j++)
+        {
+          newLeaf->key[i] = virtualNode[j];
+        }
+        if (cursor == root)
+        {
+          Node *newRoot = new Node;
+          newRoot->key[0] = newLeaf->key[0];
+          newRoot->ptr[0] = cursor;
+          newRoot->ptr[1] = newLeaf;
+          newRoot->IS_LEAF = false;
+          newRoot->size = 1;
+          root = newRoot;
+        }
+        else
+        {
+          insertInternal(newLeaf->key[0], parent, newLeaf);
+        }
+      }
+    }
+  }
+}
+
+// Insert Operation
+void BPTree::insertInternal(bp_registro x, Node *cursor, Node *child)
+{
+  if (cursor->size < MAX - 1)
+  {
+    int i = 0;
+    while (x.id > cursor->key[i].id && i < cursor->size)
+      i++;
+    for (int j = cursor->size; j > i; j--)
+    {
+      cursor->key[j] = cursor->key[j - 1];
+    }
+    for (int j = cursor->size + 1; j > i + 1; j--)
+    {
+      cursor->ptr[j] = cursor->ptr[j - 1];
+    }
+    cursor->key[i].id = x.id;
+    cursor->key[i].bloco_addr = x.bloco_addr;
+    cursor->size++;
+    cursor->ptr[i + 1] = child;
+  }
+  else
+  {
+    Node *newInternal = new Node;
+    bp_registro virtualKey[MAX + 1];
+    Node *virtualPtr[MAX + 2];
+    for (int i = 0; i < MAX; i++)
+    {
+      virtualKey[i] = cursor->key[i];
+    }
+    for (int i = 0; i < MAX + 1; i++)
+    {
+      virtualPtr[i] = cursor->ptr[i];
+    }
+    int i = 0, j;
+    while (x.id > virtualKey[i].id && i < MAX)
+      i++;
+    for (int j = MAX + 1; j > i; j--)
+    {
+      virtualKey[j] = virtualKey[j - 1];
+    }
+    virtualKey[i] = x;
+    for (int j = MAX + 1; j > i + 1; j--)
+    {
+      virtualPtr[j] = virtualPtr[j - 1];
+    }
+    virtualPtr[i + 1] = child;
+    newInternal->IS_LEAF = false;
+    cursor->size = (MAX - 1) / 2;
+    newInternal->size = MAX - cursor->size - 1;
+    for (i = 0, j = cursor->size + 1; i < newInternal->size; i++, j++)
+    {
+      newInternal->key[i] = virtualKey[j];
+    }
+    for (i = 0, j = cursor->size + 1; i < newInternal->size + 1; i++, j++)
+    {
+      newInternal->ptr[i] = virtualPtr[j];
+    }
+    if (cursor == root)
+    {
+      Node *newRoot = new Node;
+      newRoot->key[0] = cursor->key[cursor->size];
+      newRoot->ptr[0] = cursor;
+      newRoot->ptr[1] = newInternal;
+      newRoot->ptr[0]->IS_LEAF = false;
+      newRoot->ptr[1]->IS_LEAF = false;
+
+      newRoot->IS_LEAF = false;
+      newRoot->size = 1;
+      root = newRoot;
+    }
+    else
+    {
+      insertInternal(cursor->key[cursor->size], findParent(root, cursor), newInternal);
+    }
+  }
+}
+
+// Find the parent
+Node *BPTree::findParent(Node *cursor, Node *child)
+{
+  Node *parent;
+  if (cursor->IS_LEAF || (cursor->ptr[0])->IS_LEAF)
+  {
+    return NULL;
+  }
+  for (int i = 0; i < cursor->size + 1; i++)
+  {
+    if (cursor->ptr[i] == child)
+    {
+      parent = cursor;
+      return parent;
+    }
+    else
+    {
+      parent = findParent(cursor->ptr[i], child);
+      if (parent != NULL)
+        return parent;
+    }
+  }
+  return parent;
+}
+
+// Print the tree
+void BPTree::display(Node *cursor, int last)
+{
+  int lastId = last; // Variável auxiliar para armazenar o último ID impresso
+  if (cursor != NULL)
+  {
+    if (cursor->IS_LEAF)
+    {
+      for (int i = 0; i < cursor->size; i++)
+      {
+        if (cursor->key[i].id != lastId)
+        {
+          cout << "ID: " << cursor->key[i].id << ", Block Addr: " << cursor->key[i].bloco_addr << endl;
+          lastId = cursor->key[i].id;
+        }
+      }
+    }
+    else
+    {
+      int i = 0;
+      while (i < cursor->size)
+      {
+        display(cursor->ptr[i], lastId);
+        if (cursor->key[i].id != lastId)
+        {
+          cout << "ID: " << cursor->key[i].id << ", Block Addr: " << cursor->key[i].bloco_addr << endl;
+          lastId = cursor->key[i].id;
+        }
+        i++;
+      }
+      display(cursor->ptr[i], lastId);
+    }
+  }
+}
+
+// Função para calcular o tamanho em bytes da árvore B+Tree
+size_t BPTree::calculateSize(Node *cursor)
+{
+  if (cursor == nullptr)
+  {
+    return 0;
+  }
+
+  size_t nodeSize = sizeof(Node);    // Tamanho da estrutura do nó
+  size_t keySize = sizeof(bp_registro); // Tamanho da estrutura da chave
+
+  size_t size = nodeSize + (cursor->size * keySize);
+
+  if (!cursor->IS_LEAF)
+  {
+    for (int i = 0; i <= cursor->size; i++)
+    {
+      size += calculateSize(cursor->ptr[i]);
+    }
+    cout << "Node size: " << nodeSize << " | Keys size: " << cursor->size * keySize << endl; // DEBUG
+  }
+  cout << "Node size: " << nodeSize << " | Keys size: " << cursor->size * keySize << endl; // DEBUG
+  return size;
+}
+
+// Get the root
+Node *BPTree::getRoot()
+{
+  return root;
+}
+
+void BPTree::serializeTree(const string &filename)
+{
+    ofstream file(filename, ios::binary);
+    if (!file)
+    {
+        cerr << "Erro ao abrir o arquivo: " << filename << endl;
+        return;
+    }
+    serializeNode(file, root);
+    file.close();
+}
+
+void BPTree::serializeNode(ofstream &file, Node *node)
+{
+    if (node == nullptr)
+        return;
+
+    file.write(reinterpret_cast<char *>(node), sizeof(Node));
+    file.write(reinterpret_cast<char *>(node->key), node->size * sizeof(bp_registro));
+
+    if (!node->IS_LEAF)
+    {
+        for (int i = 0; i <= node->size; i++)
+        {
+            serializeNode(file, node->ptr[i]);
+        }
+    }
+}
+
+void BPTree::deserializeTree(const string &filename)
+{
+    ifstream file(filename, ios::binary);
+    if (!file)
+    {
+        cerr << "Erro ao abrir o arquivo: " << filename << endl;
+        return;
+    }
+
+    deleteTree(root); // Limpar a árvore existente antes de desserializar
+
+    while (true)
+    {
+        Node *node = new Node;
+        if (!file.read(reinterpret_cast<char *>(node), sizeof(Node)))
+            break; // Saia do loop se a leitura falhar
+
+        // Alocar espaço para node->key
+        node->key = new bp_registro[node->size];
+
+        if (!file.read(reinterpret_cast<char *>(node->key), node->size * sizeof(bp_registro)))
+            break; // Saia do loop se a leitura falhar
+
+        node->ptr = new Node *[node->size + 1];
+
+        if (root == nullptr)
+            root = node;
+
+        if (!node->IS_LEAF)
+        {
+            for (int i = 0; i <= node->size; i++)
+            {
+                Node *child = new Node;
+                if (!file.read(reinterpret_cast<char *>(child), sizeof(Node)))
+                    break; // Saia do loop se a leitura falhar
+
+                // Alocar espaço para child->key
+                child->key = new bp_registro[child->size];
+
+                if (!file.read(reinterpret_cast<char *>(child->key), child->size * sizeof(bp_registro)))
+                    break; // Saia do loop se a leitura falhar
+
+                child->ptr = new Node *[child->size + 1];
+                node->ptr[i] = child;
+            }
+        }
+    }
+
+    file.close();
+}
+
+
+void BPTree::deleteTree(Node *node)
+{
+    if (node == nullptr)
+        return;
+
+    if (!node->IS_LEAF)
+    {
+        for (int i = 0; i <= node->size; i++)
+        {
+            deleteTree(node->ptr[i]);
+        }
+    }
+
+    delete[] node->key;
+    delete[] node->ptr;
+    delete node;
+    node = nullptr;
+}
+
 
 #endif

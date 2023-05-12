@@ -13,7 +13,7 @@ int main(int argc, char const *argv[])
     }
 
     //Abertura do arquivo de dados organizado por hashing
-    ifstream dataFileI("data2.bin", ios::binary | ios::in);
+    ifstream dataFileI("data.bin", ios::binary | ios::in);
 
     Registro* registro_busca = buscar_registro(dataFileI, atoi(argv[1]));
     if(registro_busca != NULL) {
