@@ -1,483 +1,471 @@
-#ifndef BPLUS_TREE_H
-#define BPLUS_TREE_H
+#ifndef BPLUSTREE_H
+#define BPLUSTREE_H
 
-#include <climits>
-#include <fstream>
 #include <iostream>
-#include <sstream>
-#include "queue"
-#include "../Constantes/constantes.h"
+#include <fstream>
 
 using namespace std;
 
-struct bp_registro
-{
-  int id;
-  int bloco_addr;
+struct RegArvore {
+    int chave;
+    int valor;
+
+    RegArvore(int chave, int valor) : chave(chave), valor(valor) {}
+    RegArvore() : chave(0), valor(0) {}
 };
 
-// BP node
-class Node
-{
+template <typename T>
+struct Node {
+    bool is_leaf;
+    std::size_t degree; // maximum number of children
+    std::size_t size; // current number of item
+    RegArvore* item;
+    Node<RegArvore>** children;
+    Node<RegArvore>* parent;
+
 public:
-  bool IS_LEAF;
-  bp_registro *key;
-  int size;
-  Node **ptr;
+    Node(std::size_t _degree) {// Constructor
+        this->is_leaf = false;
+        this->degree = _degree;
+        this->size = 0;
 
-  Node();
+        RegArvore* _item = new RegArvore[degree-1];
+        for(int i=0; i<degree-1; i++){
+            _item[i] = RegArvore(0,0);
+        }
+        this->item = _item;
+
+        Node<RegArvore>** _children = new Node<RegArvore>*[degree];
+        for(int i=0; i<degree; i++){
+            _children[i] = nullptr;
+        }
+        this->children = _children;
+
+        this->parent = nullptr;
+    }
 };
 
-// BP tree
-class BPTree
-{
+class BPlusTree {
 public:
-  //atributos da árvore B+
-  Node *root;
-  int order;
+    Node<RegArvore>* root;
+    std::size_t degree;
 
-  //função construtora
-  BPTree(int order)
-  {
-    root = nullptr;
-    this->order = order;
-    MAX = 2 * order;
-  }
-  //funções para serialização
-  void serializeNode(ofstream &file, Node *node);
-  void serializeTree(const string &filename);
-  void deserializeTree(const string &filename);
+public:
+    BPlusTree(std::size_t _degree) {// Constructor
+        this->root = nullptr;
+        this->degree = _degree;
+    }
+    // ~BPlusTree() { // Destructor
+    //     clear(this->root);
+    // }
 
-  void deleteTree(Node *node);
-  
-  //funções da árvore B+
-  void search(int);
-  void insert(int, int);
-  void display(Node *, int);
-  Node *getRoot();
-  size_t calculateSize(Node *);
-  void insertInternal(bp_registro, Node *, Node *);
-  Node *findParent(Node *, Node *);
-};
 
-Node::Node() {
-  key = new bp_registro[MAX + 1];
-  ptr = new Node *[MAX + 1 + 1];  // +1 para o filho à esquerda de cada chave, +1 para o último ponteiro
-}
-
-// Search operation
-void BPTree::search(int x)
-{
-  if (root == nullptr)
-  {
-    cout << "Tree is empty\n";
-    return;
-  }
-
-  Node *cursor = root;
-  while (!cursor->IS_LEAF)
-  {
-    int i = 0;
-    while (i < cursor->size)
-    {
-      if (x < cursor->key[i].id)
-        break;
-      i++;
+    Node<RegArvore>* getroot(){
+        return this->root;
     }
 
-    if (i == cursor->size) // Verifica se o índice está fora dos limites
-      i = cursor->size - 1; // Define o índice para o último ponteiro válido
-
-    cursor = cursor->ptr[i];
-  }
-
-  for (int i = 0; i < cursor->size; i++)
-  {
-    if (cursor->key[i].id == x)
-    {
-      cout << "Found\n";
-      return;
-    }
-  }
-
-  cout << "Not found\n";
-}
-
-
-// Insert Operation
-void BPTree::insert(int x, int y)
-{
-  if (root == NULL)
-  {
-    root = new Node;
-    root->key[0].id = x;
-    root->key[0].bloco_addr = y;
-    root->IS_LEAF = true;
-    root->size = 1;
-  }
-  else
-  {
-    if(x == 136421){
-      cout << "oi";
-    }
-    Node *cursor = root;
-    Node* parent = nullptr;
-    while (cursor->IS_LEAF == false)
-      {
-      parent = cursor;
-      for (int i = 0; i < cursor->size; i++)
-      {
-        if (x < cursor->key[i].id)
-        {
-          cursor = cursor->ptr[i];
-          break;
+    Node<RegArvore>* BPlusTreeSearch(Node<RegArvore>* node, RegArvore key){
+        if(node == nullptr) { // if root is null, return nullptr
+            return nullptr;
         }
-        if (i == cursor->size - 1)
-        {
-          cursor = cursor->ptr[i + 1];
-          break;
+        else{
+            Node<RegArvore>* cursor = node; // cursor finding key
+
+            while(!cursor->is_leaf){ // until cusor pointer arrive leaf
+                for(int i=0; i<cursor->size; i++){ //in this index node, find what we want key
+                    if(key.chave < cursor->item[i].chave){ //find some range, and let find their child also.
+                        cursor = cursor->children[i];
+                        break;
+                    }
+                    if(i == (cursor->size)-1){
+                        cursor = cursor->children[i+1];
+                        break;
+                    }
+                }
+            }
+
+            //search for the key if it exists in leaf node.
+            for(int i=0; i<cursor->size; i++){
+                if(cursor->item[i].chave == key.chave){
+                    return cursor;
+                }
+            }
+
+            return nullptr;
         }
-      }
-      if (cursor == nullptr)
-        {
-          break;  // Verificação adicionada para evitar acessar um ponteiro nulo
+    }
+
+    Node<RegArvore>* BPlusTreeRangeSearch(Node<RegArvore>* node, RegArvore key){
+    if(node == nullptr) { // if root is null, return nullptr
+        return nullptr;
+    }
+    else{
+        Node<RegArvore>* cursor = node; // cursor finding key
+
+        while(!cursor->is_leaf){ // until cusor pointer arrive leaf
+            for(int i=0; i<cursor->size; i++){ //in this index node, find what we want key
+                if(key.chave < cursor->item[i].chave){ //find some range, and let find their child also.
+                    cursor = cursor->children[i];
+                    break;
+                }
+                if(i == (cursor->size)-1){
+                    cursor = cursor->children[i+1];
+                    break;
+                }
+            }
         }
-      }
-
-    if (cursor != nullptr){
-      if (cursor->size < MAX)
-      {
-        int i = 0;
-        while (x > cursor->key[i].id && i < cursor->size)
-          i++;
-        for (int j = cursor->size; j > i; j--)
-        {
-          cursor->key[j] = cursor->key[j - 1];
-        }
-        cursor->key[i].id = x;
-        cursor->key[i].bloco_addr = y;
-        cursor->size++;
-        cursor->ptr[cursor->size] = cursor->ptr[cursor->size - 1];
-        cursor->ptr[cursor->size - 1] = NULL;
-      }
-      else
-      {
-        Node *newLeaf = new Node;
-        bp_registro virtualNode[MAX + 1];
-        for (int i = 0; i < MAX; i++)
-        {
-          virtualNode[i] = cursor->key[i];
-        }
-        int i = 0, j;
-        while (x > virtualNode[i].id && i < MAX)
-          i++;
-        for (int j = MAX + 1; j > i; j--)
-        {
-          virtualNode[j] = virtualNode[j - 1];
-        }
-        virtualNode[i].id = x;
-        virtualNode[i].bloco_addr = y;
-        newLeaf->IS_LEAF = true;
-        cursor->size = (MAX - 1) / 2;
-        newLeaf->size = MAX - cursor->size - 1;
-        cursor->ptr[cursor->size] = newLeaf;
-        newLeaf->ptr[newLeaf->size] = NULL; // Adicionar esta linha para inicializar o ponteiro corretamente
-        cursor->ptr[MAX] = NULL;
-        for (i = 0; i < cursor->size; i++)
-        {
-          cursor->key[i] = virtualNode[i];
-        }
-        for (i = 0, j = cursor->size; i < newLeaf->size; i++, j++)
-        {
-          newLeaf->key[i] = virtualNode[j];
-        }
-        if (cursor == root)
-        {
-          Node *newRoot = new Node;
-          newRoot->key[0] = newLeaf->key[0];
-          newRoot->ptr[0] = cursor;
-          newRoot->ptr[1] = newLeaf;
-          newRoot->IS_LEAF = false;
-          newRoot->size = 1;
-          root = newRoot;
-        }
-        else
-        {
-          insertInternal(newLeaf->key[0], parent, newLeaf);
-        }
-      }
-    }
-  }
-}
-
-// Insert Operation
-void BPTree::insertInternal(bp_registro x, Node *cursor, Node *child)
-{
-  if (cursor->size < MAX - 1)
-  {
-    int i = 0;
-    while (x.id > cursor->key[i].id && i < cursor->size)
-      i++;
-    for (int j = cursor->size; j > i; j--)
-    {
-      cursor->key[j] = cursor->key[j - 1];
-    }
-    for (int j = cursor->size + 1; j > i + 1; j--)
-    {
-      cursor->ptr[j] = cursor->ptr[j - 1];
-    }
-    cursor->key[i].id = x.id;
-    cursor->key[i].bloco_addr = x.bloco_addr;
-    cursor->size++;
-    cursor->ptr[i + 1] = child;
-  }
-  else
-  {
-    Node *newInternal = new Node;
-    bp_registro virtualKey[MAX + 1];
-    Node *virtualPtr[MAX + 2];
-    for (int i = 0; i < MAX; i++)
-    {
-      virtualKey[i] = cursor->key[i];
-    }
-    for (int i = 0; i < MAX + 1; i++)
-    {
-      virtualPtr[i] = cursor->ptr[i];
-    }
-    int i = 0, j;
-    while (x.id > virtualKey[i].id && i < MAX)
-      i++;
-    for (int j = MAX + 1; j > i; j--)
-    {
-      virtualKey[j] = virtualKey[j - 1];
-    }
-    virtualKey[i] = x;
-    for (int j = MAX + 1; j > i + 1; j--)
-    {
-      virtualPtr[j] = virtualPtr[j - 1];
-    }
-    virtualPtr[i + 1] = child;
-    newInternal->IS_LEAF = false;
-    cursor->size = (MAX - 1) / 2;
-    newInternal->size = MAX - cursor->size - 1;
-    for (i = 0, j = cursor->size + 1; i < newInternal->size; i++, j++)
-    {
-      newInternal->key[i] = virtualKey[j];
-    }
-    for (i = 0, j = cursor->size + 1; i < newInternal->size + 1; i++, j++)
-    {
-      newInternal->ptr[i] = virtualPtr[j];
-    }
-    if (cursor == root)
-    {
-      Node *newRoot = new Node;
-      newRoot->key[0] = cursor->key[cursor->size];
-      newRoot->ptr[0] = cursor;
-      newRoot->ptr[1] = newInternal;
-      newRoot->ptr[0]->IS_LEAF = false;
-      newRoot->ptr[1]->IS_LEAF = false;
-
-      newRoot->IS_LEAF = false;
-      newRoot->size = 1;
-      root = newRoot;
-    }
-    else
-    {
-      insertInternal(cursor->key[cursor->size], findParent(root, cursor), newInternal);
-    }
-  }
-}
-
-// Find the parent
-Node *BPTree::findParent(Node *cursor, Node *child)
-{
-  Node *parent;
-  if (cursor->IS_LEAF || (cursor->ptr[0])->IS_LEAF)
-  {
-    return NULL;
-  }
-  for (int i = 0; i < cursor->size + 1; i++)
-  {
-    if (cursor->ptr[i] == child)
-    {
-      parent = cursor;
-      return parent;
-    }
-    else
-    {
-      parent = findParent(cursor->ptr[i], child);
-      if (parent != NULL)
-        return parent;
-    }
-  }
-  return parent;
-}
-
-// Print the tree
-void BPTree::display(Node *cursor, int last)
-{
-  int lastId = last; // Variável auxiliar para armazenar o último ID impresso
-  if (cursor != NULL)
-  {
-    if (cursor->IS_LEAF)
-    {
-      for (int i = 0; i < cursor->size; i++)
-      {
-        if (cursor->key[i].id != lastId)
-        {
-          cout << "ID: " << cursor->key[i].id << ", Block Addr: " << cursor->key[i].bloco_addr << endl;
-          lastId = cursor->key[i].id;
-        }
-      }
-    }
-    else
-    {
-      int i = 0;
-      while (i < cursor->size)
-      {
-        display(cursor->ptr[i], lastId);
-        if (cursor->key[i].id != lastId)
-        {
-          cout << "ID: " << cursor->key[i].id << ", Block Addr: " << cursor->key[i].bloco_addr << endl;
-          lastId = cursor->key[i].id;
-        }
-        i++;
-      }
-      display(cursor->ptr[i], lastId);
-    }
-  }
-}
-
-// Função para calcular o tamanho em bytes da árvore B+Tree
-size_t BPTree::calculateSize(Node *cursor)
-{
-  if (cursor == nullptr)
-  {
-    return 0;
-  }
-
-  size_t nodeSize = sizeof(Node);    // Tamanho da estrutura do nó
-  size_t keySize = sizeof(bp_registro); // Tamanho da estrutura da chave
-
-  size_t size = nodeSize + (cursor->size * keySize);
-
-  if (!cursor->IS_LEAF)
-  {
-    for (int i = 0; i <= cursor->size; i++)
-    {
-      size += calculateSize(cursor->ptr[i]);
-    }
-    cout << "Node size: " << nodeSize << " | Keys size: " << cursor->size * keySize << endl; // DEBUG
-  }
-  cout << "Node size: " << nodeSize << " | Keys size: " << cursor->size * keySize << endl; // DEBUG
-  return size;
-}
-
-// Get the root
-Node *BPTree::getRoot()
-{
-  return root;
-}
-
-void BPTree::serializeTree(const string &filename)
-{
-    ofstream file(filename, ios::binary);
-    if (!file)
-    {
-        cerr << "Erro ao abrir o arquivo: " << filename << endl;
-        return;
-    }
-    serializeNode(file, root);
-    file.close();
-}
-
-void BPTree::serializeNode(ofstream &file, Node *node)
-{
-    if (node == nullptr)
-        return;
-
-    file.write(reinterpret_cast<char *>(node), sizeof(Node));
-    file.write(reinterpret_cast<char *>(node->key), node->size * sizeof(bp_registro));
-
-    if (!node->IS_LEAF)
-    {
-        for (int i = 0; i <= node->size; i++)
-        {
-            serializeNode(file, node->ptr[i]);
-        }
+        return cursor;
     }
 }
 
-void BPTree::deserializeTree(const string &filename)
-{
-    ifstream file(filename, ios::binary);
-    if (!file)
-    {
-        cerr << "Erro ao abrir o arquivo: " << filename << endl;
-        return;
+int range_search(int start, int end, RegArvore* result_data, int arr_length) {
+    int index=0;
+
+    Node<RegArvore>* start_node = BPlusTreeRangeSearch(this->root, RegArvore(start, 0));
+    Node<RegArvore>* cursor = start_node;
+    RegArvore temp = cursor->item[0];
+
+    while(temp.chave<=end){
+        if(cursor == nullptr){
+            break;
+        }
+        for(int i=0; i< cursor->size;i++){
+            temp = cursor->item[i];
+            if((temp.chave >= start)&&(temp.chave <= end)){
+                result_data[index] = temp;
+                index++;
+            }
+        }
+        cursor = cursor->children[cursor->size];
+    }
+    return index;
+}
+
+    Node<RegArvore> search(int chave) {  // Return true if the item exists. Return false if it does not.
+        return *BPlusTreeSearch(this->root, RegArvore(chave, 0)) ;
     }
 
-    deleteTree(root); // Limpar a árvore existente antes de desserializar
+    int find_index(RegArvore* arr, RegArvore data, int len){
+        int index = 0;
+        for(int i=0; i<len; i++){
+            if(data.chave < arr[i].chave){
+                index = i;
+                break;
+            }
+            if(i==len-1){
+                index = len;
+                break;
+            }
+        }
+        return index;
+    }
 
-    while (true)
-    {
-        Node *node = new Node;
-        if (!file.read(reinterpret_cast<char *>(node), sizeof(Node)))
-            break; // Saia do loop se a leitura falhar
+    RegArvore* item_insert(RegArvore* arr, RegArvore data, int len){
+        int index = 0;
+        for(int i=0; i<len; i++){
+            if(data.chave < arr[i].chave){
+                index = i;
+                break;
+            }
+            if(i==len-1){
+                index = len;
+                break;
+            }
+        }
 
-        // Alocar espaço para node->key
-        node->key = new bp_registro[node->size];
+        for(int i = len; i > index; i--){
+            arr[i] = arr[i-1];
+        }
 
-        if (!file.read(reinterpret_cast<char *>(node->key), node->size * sizeof(bp_registro)))
-            break; // Saia do loop se a leitura falhar
+        arr[index] = data;
 
-        node->ptr = new Node *[node->size + 1];
+        return arr;
+    }
 
-        if (root == nullptr)
-            root = node;
+    Node<RegArvore>** child_insert(Node<RegArvore>** child_arr, Node<RegArvore>*child,int len,int index){
+        for(int i= len; i > index; i--){
+            child_arr[i] = child_arr[i - 1];
+        }
+        child_arr[index] = child;
+        return child_arr;
+    }
 
-        if (!node->IS_LEAF)
-        {
-            for (int i = 0; i <= node->size; i++)
-            {
-                Node *child = new Node;
-                if (!file.read(reinterpret_cast<char *>(child), sizeof(Node)))
-                    break; // Saia do loop se a leitura falhar
+    Node<RegArvore>* child_item_insert(Node<RegArvore>* node, RegArvore data, Node<RegArvore>* child){
+        int item_index=0;
+        int child_index=0;
+        for(int i=0; i< node->size; i++){
+            if(data.chave < node->item[i].chave){
+                item_index = i;
+                child_index = i+1;
+                break;
+            }
+            if(i==node->size-1){
+                item_index = node->size;
+                child_index = node->size+1;
+                break;
+            }
+        }
+        for(int i = node->size;i > item_index; i--){
+            node->item[i] = node->item[i-1];
+        }
+        for(int i=node->size+1;i>child_index;i--){
+            node->children[i] = node->children[i-1];
+        }
 
-                // Alocar espaço para child->key
-                child->key = new bp_registro[child->size];
+        node->item[item_index] = data;
+        node->children[child_index] = child;
 
-                if (!file.read(reinterpret_cast<char *>(child->key), child->size * sizeof(bp_registro)))
-                    break; // Saia do loop se a leitura falhar
+        return node;
+    }
 
-                child->ptr = new Node *[child->size + 1];
-                node->ptr[i] = child;
+    void InsertPar(Node<RegArvore>* par, Node<RegArvore>* child, RegArvore data) {
+        // overflow check
+        Node<RegArvore>* cursor = par;
+        if (cursor->size < this->degree - 1) { // not overflow, just insert in the correct position
+            // insert item, child, and reallocate
+            cursor = child_item_insert(cursor, data, child);
+            cursor->size++;
+        }
+        else { // overflow
+            // make new node
+            auto* Newnode = new Node<RegArvore>(this->degree);
+            Newnode->parent = cursor->parent;
+
+            // copy item
+            RegArvore* item_copy = new RegArvore[cursor->size + 1];
+            for (int i = 0; i < cursor->size; i++) {
+                item_copy[i] = cursor->item[i];
+            }
+            item_copy = item_insert(item_copy, data, cursor->size);
+
+            auto** child_copy = new Node<RegArvore>*[cursor->size + 2];
+            for (int i = 0; i < cursor->size + 1; i++) {
+                child_copy[i] = cursor->children[i];
+            }
+            child_copy[cursor->size + 1] = nullptr;
+            child_copy = child_insert(child_copy, child, cursor->size + 1, find_index(item_copy, data, cursor->size + 1));
+
+            // split nodes
+            cursor->size = (this->degree) / 2;
+            if ((this->degree) % 2 == 0) {
+                Newnode->size = (this->degree) / 2 - 1;
+            }
+            else {
+                Newnode->size = (this->degree) / 2;
+            }
+
+            for (int i = 0; i < cursor->size; i++) {
+                cursor->item[i] = item_copy[i];
+                cursor->children[i] = child_copy[i];
+            }
+            cursor->children[cursor->size] = child_copy[cursor->size];
+
+            for (int i = 0; i < Newnode->size; i++) {
+                Newnode->item[i] = item_copy[cursor->size + i + 1];
+                Newnode->children[i] = child_copy[cursor->size + i + 1];
+                Newnode->children[i]->parent = Newnode;
+            }
+            Newnode->children[Newnode->size] = child_copy[cursor->size + Newnode->size + 1];
+            Newnode->children[Newnode->size]->parent = Newnode;
+
+            RegArvore paritem = item_copy[this->degree / 2];
+
+            delete[] item_copy;
+            delete[] child_copy;
+
+            // parent check
+            if (cursor->parent == nullptr) { // if there are no parent node (root case)
+                auto* Newparent = new Node<RegArvore>(this->degree);
+                cursor->parent = Newparent;
+                Newnode->parent = Newparent;
+
+                Newparent->item[0] = paritem;
+                Newparent->size++;
+
+                Newparent->children[0] = cursor;
+                Newparent->children[1] = Newnode;
+
+                this->root = Newparent;
+            }
+            else { // if there already have parent node
+                InsertPar(cursor->parent, Newnode, paritem);
             }
         }
     }
 
-    file.close();
-}
+    void insert(RegArvore* data) {
+        RegArvore reg(data->chave, data->valor);
 
+        if (this->root == nullptr) { //if the tree is empty
+            this->root = new Node<RegArvore>(this->degree);
+            this->root->is_leaf = true;
+            this->root->item[0] = *data;
+            this->root->size = 1;
+        } else { //if the tree has at least one node
+            Node<RegArvore>* cursor = this->root;
 
-void BPTree::deleteTree(Node *node)
-{
-    if (node == nullptr)
-        return;
+            //move to leaf node
+            cursor = BPlusTreeRangeSearch(cursor, reg);
 
-    if (!node->IS_LEAF)
-    {
-        for (int i = 0; i <= node->size; i++)
-        {
-            deleteTree(node->ptr[i]);
+            //overflow check
+            if (cursor->size < (this->degree - 1)) { // not overflow, just insert in the correct position
+                //item insert and rearrange
+                cursor->item = item_insert(cursor->item, *data, cursor->size);
+                cursor->size++;
+                //edit pointer(next node)
+                cursor->children[cursor->size] = cursor->children[cursor->size - 1];
+                cursor->children[cursor->size - 1] = nullptr;
+            } else { //overflow case
+                //make new node
+                auto* Newnode = new Node<RegArvore>(this->degree);
+                Newnode->is_leaf = true;
+                Newnode->parent = cursor->parent;
+
+                //copy item
+                RegArvore* item_copy = new RegArvore[cursor->size + 1];
+                for (int i = 0; i < cursor->size; i++) {
+                    item_copy[i] = cursor->item[i];
+                }
+
+                //insert and rearrange
+                item_copy = item_insert(item_copy, *data, cursor->size);
+
+                //split nodes
+                cursor->size = (this->degree) / 2;
+                if ((this->degree) % 2 == 0) {
+                    Newnode->size = (this->degree) / 2;
+                } else {
+                    Newnode->size = (this->degree) / 2 + 1;
+                }
+
+                for (int i = 0; i < cursor->size; i++) {
+                    cursor->item[i] = item_copy[i];
+                }
+                for (int i = 0; i < Newnode->size; i++) {
+                    Newnode->item[i] = item_copy[cursor->size + i];
+                }
+
+                cursor->children[cursor->size] = Newnode;
+                Newnode->children[Newnode->size] = cursor->children[this->degree - 1];
+                cursor->children[this->degree - 1] = nullptr;
+
+                delete[] item_copy;
+
+                //parent check
+                RegArvore paritem = Newnode->item[0];
+
+                if (cursor->parent == nullptr) { //if there are no parent node(root case)
+                    auto* Newparent = new Node<RegArvore>(this->degree);
+                    cursor->parent = Newparent;
+                    Newnode->parent = Newparent;
+
+                    Newparent->item[0] = paritem;
+                    Newparent->size++;
+
+                    Newparent->children[0] = cursor;
+                    Newparent->children[1] = Newnode;
+
+                    this->root = Newparent;
+                } else { //if there already have parent node
+                    InsertPar(cursor->parent, Newnode, paritem);
+                }
+            }
+        }
+    }
+    void bpt_print(){
+        print(this->root);
+    }
+
+    void print(Node<RegArvore>* cursor) {
+        if (cursor != NULL) {
+            for (int i = 0; i < cursor->size; ++i) {
+                std::cout  << cursor->item[i].chave << " ";
+                std::cout  <<cursor->item[i].valor << " ";
+            }
+            std::cout << "\n";
+
+            if (!cursor->is_leaf) {
+                for (int i = 0; i < cursor->size + 1; ++i) {
+                    print(cursor->children[i]);
+                }
+            }
         }
     }
 
-    delete[] node->key;
-    delete[] node->ptr;
-    delete node;
-    node = nullptr;
+    void serialize_node(std::ofstream& file, Node<RegArvore>* node) {
+        // Escreve o is_leaf, o degree e o size do nó no arquivo
+        
+        cout << "node->is_leaf: " << node->is_leaf << endl;
+        cout << "node->degree: " << node->degree << endl;
+        cout << "node->size: " << node->size << endl;
+        
+        file.write(reinterpret_cast<const char*>(&node->is_leaf), sizeof(bool));
+        file.write(reinterpret_cast<const char*>(&node->degree), sizeof(int));
+        file.write(reinterpret_cast<const char*>(&node->size), sizeof(int));
+
+        // Escreve os registros (item) do nó no arquivo
+        for (int i = 0; i < node->size; i++) {
+            file.write(reinterpret_cast<const char*>(&node->item[i]), sizeof(RegArvore));
+        }
+
+        // Se o nó não é uma folha, escreve os ponteiros (children) do nó no arquivo
+        if (!node->is_leaf) {
+            for (int i = 0; i < node->size + 1; i++) {
+                serialize_node(file, node->children[i]);
+            }
+        }
+    }
+
+    void serialize_tree(std::ofstream& file) {
+        serialize_node(file, this->root);
+    }
+
+};
+
+    Node<RegArvore>* deserialize_node(std::ifstream& file, int degree) {
+        Node<RegArvore>* node = new Node<RegArvore>(degree);
+        // Lê o is_leaf, o degree e o size do nó do arquivo
+        file.read(reinterpret_cast<char*>(&node->is_leaf), sizeof(bool));
+        file.read(reinterpret_cast<char*>(&node->degree), sizeof(int));
+        file.read(reinterpret_cast<char*>(&node->size), sizeof(int));
+
+        // Aloca memória para os registros (item) do nó e lê os dados do arquivo
+        node->item = new RegArvore[node->degree];
+
+        cout << node->size << endl;
+
+        for (int i = 0; i < node->size; i++) {
+            file.read(reinterpret_cast<char*>(&node->item[i]), sizeof(RegArvore));
+        }
+
+    // Se o nó não é uma folha, aloca memória para os ponteiros (children) do nó e os lê do arquivo
+    if (!node->is_leaf) {
+        node->children = new Node<RegArvore>*[node->degree + 1];
+        for (int i = 0; i < node->size + 1; i++) {
+            node->children[i] = deserialize_node(file, degree);
+        }
+    }
+
+    return node;
+}
+
+BPlusTree deserialize_tree(const std::string& filename) {
+    std::ifstream file(filename, std::ios::binary);
+
+    if (!file.is_open()) {
+        throw std::runtime_error("Failed to open file for deserialization.");
+    }
+
+    std::size_t degree;
+    file.read(reinterpret_cast<char*>(&degree), sizeof(std::size_t));
+    BPlusTree tree(degree);
+
+    Node<RegArvore>* root = deserialize_node(file, degree);
+    tree.root = root;
+
+    file.close();
+    return tree;
 }
 
 
-#endif
+#endif //BPTREE_BPTREE_H

@@ -1,16 +1,26 @@
+
+
 #include <iostream>
 #include <fstream>
 #include <cstring>
 #include "Hash/hash.h"
+#include "BPlusTree/bPlusTree.h"
 
 using namespace std;
 
 int main(int argc, char const *argv[])
 {
 
+    BPlusTree arvore_primaria(510);
+
+    // if (argc < 2) {
+    //     cerr << "Erro: você deve informar o nome do arquivo de entrada como argumento" << endl;
+    //     return 1;
+    // }
+
     // Nome do arquivo de entrada
     string arquivo_csv = "artigo.csv";
-    string arquivo_dados = "data.bin";
+    string arquivo_dados = "data2.bin";
 
     // Criação do arquivo de dados
     ofstream dataFile(arquivo_dados, ios::binary | ios::out);
@@ -39,8 +49,6 @@ int main(int argc, char const *argv[])
 
     cout << "Inserindo registros no arquivo de dados..." << endl;
 
-
-    BPTree tree(ORDER);
     int cont = 0;
     bool inserido = true;
 
@@ -49,39 +57,22 @@ int main(int argc, char const *argv[])
         string line;
         while (getline(entry_file, line)){
             Registro* r = lineToRegister(line);
-            if(r != NULL){        
-             inserido = inserir_registro_bucket(hashTable, &tree, r,dataFileI,dataFile);
+            if(r != NULL){
+                inserido = inserir_registro_bucket(hashTable, r,dataFileI,dataFile,arvore_primaria);
             }
             if(!inserido){
                 cout << "Erro ao inserir registro!" << endl;
                 cout << "Bucket cheio!" << endl;
                 cout << "Total de registros inseridos: " << cont << endl;
+                return 1;
             }else{
                 cont++;
             }
         }
     }
-    //tree.display(tree.getRoot(), 0);
 
     cout << "Arquivo de dados criado com sucesso!" << endl;
     cout << "Total de registros inseridos: " << cont << endl;
-
-    // // Serializar a árvore em um arquivo binário
-    // cout << "Serializando a árvore B+ no arquivo bptree.bin..." << endl;    
-    // tree.serializeTree("bptree.bin");
-    // cout << "Árvore B+ serializada.\n" << endl;
-    // // Limpar a árvore existente
-    // cout << "Limpando a árvore B+..." << endl;
-    // delete tree.getRoot();
-    // tree.root = nullptr;
-    // cout << "Árvore B+ limpa.\n" << endl;
-
-    // cout << "-----------------------------------" << endl;
-    // cout << "Desserializando a árvore B+ do arquivo bptree.bin..." << endl;
-    // tree.deserializeTree("bptree.bin");
-    // cout << "Árvore B+ desserializada.\n" << endl;
-    // tree.display(tree.getRoot(), 0);
-    // cout << "-----------------------------------" << endl;
 
     // // Fechamento do arquivo de entrada de registros
     entry_file.close();
@@ -89,6 +80,25 @@ int main(int argc, char const *argv[])
     dataFileI.close();
     // Fechamento do arquivo de dados (Para escrita e leitura)
     dataFile.close();
+
+                     while(true){
+                    int id = 0;
+                    printf("Digite o id a ser buscado: ");
+                    scanf("%d", &id);
+                 
+                    if(id == -1){
+                        break;
+                    }
+                    Node<RegArvore> r = arvore_primaria.search(id);
+
+                    for (int i = 0; i < r.size; i++) {
+                        if (r.item[i].chave == id) {
+                            cout << r.item[i].chave << endl;
+                            cout << r.item[i].valor << endl;
+                        }
+                       
+                    }
+                }
 
     return 0;
 }

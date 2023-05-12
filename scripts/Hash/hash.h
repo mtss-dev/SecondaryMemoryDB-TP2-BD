@@ -1,12 +1,12 @@
 #ifndef HASH_H
 #define HASH_H
 
+#include "../BPlusTree/bPlusTree.h"
 #include "../Registro/registro.h"
 #include "../Constantes/constantes.h"
 #include "../Bloco/bloco.h"
 #include "../Bucket/bucket.h"
 #include "../Registro/registro.h"
-#include "../Bplustree/bplustree.h"
 #include "iostream"
 
 using namespace std;
@@ -80,7 +80,7 @@ void inserir_registro_bloco(ifstream& leitura, ofstream& escrita, BlocoCabecalho
 }
 
 // Função para inserir um registro em um bucket
-bool inserir_registro_bucket(HashTable *hashtable, BPTree* tree, Registro *registro, ifstream &entrada, ofstream &saida)
+bool inserir_registro_bucket(HashTable *hashtable, Registro *registro, ifstream &entrada, ofstream &saida, BPlusTree &btree)
 {
     int indice_bucket = hashFunction(registro->id); // calcula o índice do bucket apropriado
     Bucket *bucket = hashtable->buckets[indice_bucket];
@@ -90,11 +90,15 @@ bool inserir_registro_bucket(HashTable *hashtable, BPTree* tree, Registro *regis
         int tam = bloco->cabecalho->tamanho_disponivel;
         if (tam >= registro->tamanho)
         {   
-            //tree->insert(registro->id, bloco_addr); // adiciona o registro à árvore
+            
+            int soma =  indice_bucket * BLOCK_SIZE * NUM_BLOCKS; //Inicio do Bucket
+            soma += (bucket->ultimo_bloco * BLOCK_SIZE) + sizeof(BlocoCabecalho) + bloco->cabecalho->posicoes_registros[bloco->cabecalho->quantidade_registros];
+
+            RegArvore *reg = new RegArvore(registro->id, soma); // adiciona o registro à árvore);
+            
+            btree.insert(reg);
             inserir_registro_bloco(entrada, saida, bloco->cabecalho, registro, bucket->ultimo_bloco, indice_bucket); // adiciona o registro ao bloco
-
-
-            bucket->ultimo_bloco = 0; //reseta o último bloco
+            bucket->ultimo_bloco = 0;
             return true;
         }else{
             bucket->ultimo_bloco++;
@@ -110,8 +114,7 @@ Registro* buscar_registro(ifstream& leitura, int id_busca) {
         Bloco* bloco = criarBloco(ultimo_bloco);
         // Lê o cabeçalho do bloco
         int index_bucket = hashFunction(id_busca);
-        int end = index_bucket * BLOCK_SIZE * NUM_BLOCKS + (ultimo_bloco * BLOCK_SIZE);
-        leitura.seekg(end);
+        leitura.seekg(index_bucket * BLOCK_SIZE * NUM_BLOCKS + (ultimo_bloco * BLOCK_SIZE));
         leitura.read(reinterpret_cast<char*>(bloco->cabecalho), sizeof(BlocoCabecalho));
         leitura.read(reinterpret_cast<char*>(bloco->dados), BLOCK_SIZE - sizeof(BlocoCabecalho));
 
@@ -125,10 +128,6 @@ Registro* buscar_registro(ifstream& leitura, int id_busca) {
                 // Verifica se o id do registro é igual ao id buscado
                 memcpy(&registro->id, &bloco->dados[posicao], sizeof(int));
                 if(registro->id == id_busca) {
-                    cout << "Endereço" << end << endl;
-                    cout << "Posição inicial no bloco: " << posicao << endl;
-                    cout << "Endereço do registro: " << end + posicao + sizeof(BlocoCabecalho) << endl;
-                    
                     posicao = sizeof(int);
                     // Deserializa o registro no bloco
                     registro->title = string((char *)&bloco->dados[posicao]);
