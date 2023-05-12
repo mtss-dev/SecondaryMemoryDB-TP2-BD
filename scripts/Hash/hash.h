@@ -6,6 +6,7 @@
 #include "../Bloco/bloco.h"
 #include "../Bucket/bucket.h"
 #include "../Registro/registro.h"
+#include "../Bplustree/bplustree.h"
 #include "iostream"
 
 using namespace std;
@@ -79,7 +80,7 @@ void inserir_registro_bloco(ifstream& leitura, ofstream& escrita, BlocoCabecalho
 }
 
 // Função para inserir um registro em um bucket
-bool inserir_registro_bucket(HashTable *hashtable, Registro *registro, ifstream &entrada, ofstream &saida)
+bool inserir_registro_bucket(HashTable *hashtable, BPlusTree* tree, Registro *registro, ifstream &entrada, ofstream &saida)
 {
     int indice_bucket = hashFunction(registro->id); // calcula o índice do bucket apropriado
     Bucket *bucket = hashtable->buckets[indice_bucket];
@@ -88,9 +89,13 @@ bool inserir_registro_bucket(HashTable *hashtable, Registro *registro, ifstream 
     {
         int tam = bloco->cabecalho->tamanho_disponivel;
         if (tam >= registro->tamanho)
-        {   
+        { 
+            tree->insert(no_registro(registro->id, indice_bucket * BLOCK_SIZE * NUM_BLOCKS + (bucket->ultimo_bloco * BLOCK_SIZE)+(BLOCK_SIZE-bloco->cabecalho->tamanho_disponivel))); // adiciona o registro à árvore
+            cout << "Registro inserido na árvore" << endl;
             inserir_registro_bloco(entrada, saida, bloco->cabecalho, registro, bucket->ultimo_bloco, indice_bucket); // adiciona o registro ao bloco
-            bucket->ultimo_bloco = 0;
+
+
+            bucket->ultimo_bloco = 0; //reseta o último bloco
             return true;
         }else{
             bucket->ultimo_bloco++;

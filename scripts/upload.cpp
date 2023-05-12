@@ -7,13 +7,9 @@ using namespace std;
 
 int main(int argc, char const *argv[])
 {
-    if (argc < 2) {
-        cerr << "Erro: você deve informar o nome do arquivo de entrada como argumento" << endl;
-        return 1;
-    }
 
     // Nome do arquivo de entrada
-    string arquivo_csv = argv[1];
+    string arquivo_csv = "artigo.csv";
     string arquivo_dados = "data2.bin";
 
     // Criação do arquivo de dados
@@ -46,13 +42,70 @@ int main(int argc, char const *argv[])
     int cont = 0;
     bool inserido = true;
 
+    bool primeira_insercao = true;
+
+    BPlusTree tree;
+    vector<char> serializedData;
+
     // Leitura dos registros do arquivo de entrada
     if (entry_file.is_open()) {
         string line;
         while (getline(entry_file, line)){
             Registro* r = lineToRegister(line);
             if(r != NULL){
-                inserido = inserir_registro_bucket(hashTable, r,dataFileI,dataFile);
+
+                if(primeira_insercao){
+                    inserido = inserir_registro_bucket(hashTable, &tree, r,dataFileI,dataFile);
+                    serializedData = tree.serialize();
+
+                    // Armazenar a estrutura serializada em um arquivo binário
+                    ofstream outFile("bplustree.bin", ios::binary);
+                    if (!outFile) {
+                        cerr << "Erro ao abrir o arquivo de saída." << endl;
+                        return 1;
+                    }
+
+                    outFile.write(serializedData.data(), serializedData.size());
+                    outFile.close();
+
+                    primeira_insercao = false;
+                }else{
+                    
+                    // Desserializar a árvore a partir do arquivo binário
+                    ifstream inFile("bplustree.bin", ios::binary);
+                    if (!inFile) {
+                        cerr << "Erro ao abrir o arquivo de entrada. " << endl;
+                        return 1;
+                    }
+
+                    // Obter o tamanho do arquivo
+                    inFile.seekg(0, ios::end);
+                    size_t fileSize = inFile.tellg();
+                    inFile.seekg(0, ios::beg);
+
+                    // Ler os dados do arquivo
+                    vector<char> fileData(fileSize);
+                    for(int i = 0; i < fileSize; i++){
+                        cout << fileData[i];
+                    }
+
+                    inFile.read(fileData.data(), fileSize);
+                    inFile.close();
+
+                    inserido = inserir_registro_bucket(hashTable, &tree, r,dataFileI,dataFile);
+
+                    serializedData = tree.serialize();
+
+                    // Armazenar a estrutura serializada em um arquivo binário
+                    ofstream outFile("bplustree.bin", ios::binary);
+                    if (!outFile) {
+                        cerr << "Erro ao abrir o arquivo de saída." << endl;
+                        return 1;
+                    }
+
+                    outFile.write(serializedData.data(), serializedData.size());
+                    outFile.close();
+                }
             }
             if(!inserido){
                 cout << "Erro ao inserir registro!" << endl;
@@ -62,6 +115,7 @@ int main(int argc, char const *argv[])
             }else{
                 cont++;
             }
+            delete r;
         }
     }
 
