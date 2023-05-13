@@ -2,7 +2,7 @@
 #include <fstream>
 #include <cstring>
 #include "Hash/hash.h"
-#include "BPlusTree/bPlusTree.h"
+#include "Bplustree/bplustree.h"
 
 using namespace std;
 

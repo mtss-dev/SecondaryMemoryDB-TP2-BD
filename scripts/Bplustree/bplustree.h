@@ -4,6 +4,7 @@
 #include <iostream>
 #include <fstream>
 #include "../Registro/registro.h"
+#include "../Constantes/constantes.h"
 
 using namespace std;
 

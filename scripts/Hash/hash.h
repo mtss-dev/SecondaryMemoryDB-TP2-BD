@@ -1,7 +1,7 @@
 #ifndef HASH_H
 #define HASH_H
 
-#include "../BPlusTree/bPlusTree.h"
+#include "../Bplustree/bplustree.h"
 #include "../Registro/registro.h"
 #include "../Constantes/constantes.h"
 #include "../Bloco/bloco.h"
