@@ -1,39 +1,39 @@
 #include "bplustree.h"
 
 int main() {
-    // Criar uma árvore B+ para teste
-    BPlusTree tree(15); // Grau 3
-    RegArvore *reg = new RegArvore(10, 20); // adiciona o registro à árvore);
+    // // Criar uma árvore B+ para teste
+    // BPlusTree tree(15); // Grau 3
+    // RegArvore *reg = new RegArvore(10, 20); // adiciona o registro à árvore);
 
-    tree.insert(reg);
+    // tree.insert(reg);
 
-    reg->chave = 20;
-    reg->valor = 40;
+    // reg->chave = 20;
+    // reg->valor = 40;
 
-    tree.insert(reg);
+    // tree.insert(reg);
 
-    reg->chave = 30;    
-    reg->valor = 60;
+    // reg->chave = 30;    
+    // reg->valor = 60;
 
-    tree.insert(reg);
+    // tree.insert(reg);
 
-    reg->chave = 40;
-    reg->valor = 80;
+    // reg->chave = 40;
+    // reg->valor = 80;
 
-    tree.insert(reg);
+    // tree.insert(reg);
 
-    reg->chave = 50;
-    reg->valor = 100;
+    // reg->chave = 50;
+    // reg->valor = 100;
 
-    tree.insert(reg);
+    // tree.insert(reg);
 
-    reg->chave = 60;
-    reg->valor = 120;
+    // reg->chave = 60;
+    // reg->valor = 120;
 
-    tree.insert(reg);
+    // tree.insert(reg);
 
-    // Serializar a árvore para um arquivo
-    tree.serializeBPlusTree(tree, "bplustree.bin");
+    // // Serializar a árvore para um arquivo
+    // tree.serializeBPlusTree(tree, "bplustree.bin");
     
 
     // Desserializar a árvore do arquivo

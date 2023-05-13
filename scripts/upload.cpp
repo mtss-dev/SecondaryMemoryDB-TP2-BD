@@ -11,7 +11,7 @@ using namespace std;
 int main(int argc, char const *argv[])
 {
 
-    BPlusTree arvore_primaria(510);
+    
 
     // if (argc < 2) {
     //     cerr << "Erro: você deve informar o nome do arquivo de entrada como argumento" << endl;
@@ -19,8 +19,8 @@ int main(int argc, char const *argv[])
     // }
 
     // Nome do arquivo de entrada
-    string arquivo_csv = "artigo.csv";
-    string arquivo_dados = "data.bin";
+    string arquivo_csv = "teste.csv";
+    string arquivo_dados = "data2.bin";
 
     // Criação do arquivo de dados
     ofstream dataFile(arquivo_dados, ios::binary | ios::out);
@@ -58,7 +58,15 @@ int main(int argc, char const *argv[])
         while (getline(entry_file, line)){
             Registro* r = lineToRegister(line);
             if(r != NULL){
-                inserido = inserir_registro_bucket(hashTable, r,dataFileI,dataFile,arvore_primaria);
+                BPlusTree arvore_primaria(510);
+                if(cont == 0){
+                    inserido = inserir_registro_bucket(hashTable, r,dataFileI,dataFile,arvore_primaria);
+                    arvore_primaria.serializeBPlusTree(arvore_primaria, "bplustree.bin");
+                }else{
+                    arvore_primaria = arvore_primaria.deserializeBPlusTree("bplustree.bin");
+                    inserido = inserir_registro_bucket(hashTable, r,dataFileI,dataFile,arvore_primaria);
+                    arvore_primaria.serializeBPlusTree(arvore_primaria, "bplustree.bin");
+                }
             }
             if(!inserido){
                 cout << "Erro ao inserir registro!" << endl;
@@ -81,24 +89,24 @@ int main(int argc, char const *argv[])
     // Fechamento do arquivo de dados (Para escrita e leitura)
     dataFile.close();
 
-    while(true){
-        int id = 0;
-        printf("Digite o id a ser buscado: ");
-        scanf("%d", &id);
+    // while(true){
+    //     int id = 0;
+    //     printf("Digite o id a ser buscado: ");
+    //     scanf("%d", &id);
         
-        if(id == -1){
-            break;
-        }
-        Node<RegArvore> r = arvore_primaria.search(id);
+    //     if(id == -1){
+    //         break;
+    //     }
+    //     Node<RegArvore> r = arvore_primaria.search(id);
 
-        for (int i = 0; i < r.size; i++) {
-            if (r.item[i].chave == id) {
-                cout << r.item[i].chave << endl;
-                cout << r.item[i].valor << endl;
-            }
+    //     for (int i = 0; i < r.size; i++) {
+    //         if (r.item[i].chave == id) {
+    //             cout << r.item[i].chave << endl;
+    //             cout << r.item[i].valor << endl;
+    //         }
             
-        }
-    }
+    //     }
+    // }
 
     return 0;
 }
