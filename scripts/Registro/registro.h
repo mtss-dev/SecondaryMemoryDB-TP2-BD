@@ -48,17 +48,21 @@ void imprimeRegistro(Registro registro) {
     cout << "------------------------" << endl;
 }
 
+string remove_unicode(string str){
+    for (int i = 0; i < str.length(); i++) {
+        if (str[i] < 0 || str[i] > 127) {
+            str[i] = ' '; // substitui por um espaço em branco
+        }
+    }
+    return str;
+}
 
 // Função para serializar um registro
-Registro* lineToRegister(string line){
+Registro* lineToRegister(string entry_line){
     vector<string> fields;
     string field = "";
     
-    for (int i = 0; i < line.length(); i++) {
-        if (line[i] < 0 || line[i] > 127) {
-            line[i] = ' '; // substitui por um espaço em branco
-        }
-    }
+    string line = remove_unicode(entry_line);
 
     for (int i = 0; i < line.size()-1; i++){    
             

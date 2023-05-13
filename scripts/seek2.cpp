@@ -18,7 +18,8 @@ int main(int argc, char const *argv[])
     ifstream dataFileI("arquivo_de_dados.bin", ios::binary | ios::in);
     string indice_primario = "indice_secundario.bin";
 
-    Registro* registro_busca = buscar_registro_bpt(indice_primario,dataFileI, gerar_inteiro(argv[1]));
+
+    Registro* registro_busca = buscar_registro_bpt(indice_primario,dataFileI, gerar_inteiro(remove_unicode(argv[1])));
     if(registro_busca != NULL) {
         cout << "\nCampos do Registros:" << endl;
         imprimeRegistro(*registro_busca);
