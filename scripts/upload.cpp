@@ -47,13 +47,14 @@ int main(int argc, char const *argv[])
     int cont = 0;
     bool inserido = true;
     BPlusTree arvore_primaria(MAX_KEYS);
+    BPlusTree arvore_secundaria(MAX_KEYS);
     // Leitura dos registros do arquivo de entrada
     if (entry_file.is_open()) {
         string line;
         while (getline(entry_file, line)){
             Registro* r = lineToRegister(line);
             if(r != NULL){
-                inserido = inserir_registro_bucket(hashTable, r,dataFileI,dataFile,arvore_primaria);
+                inserido = inserir_registro_bucket(hashTable, r,dataFileI,dataFile,arvore_primaria, arvore_secundaria);
             }
             if(!inserido){
                 cout << "Erro ao inserir registro!" << endl;
@@ -69,6 +70,8 @@ int main(int argc, char const *argv[])
     cout << "Total de registros inseridos: " << cont << endl;
     arvore_primaria.serializeBPlusTree(arvore_primaria, "indice_primario.bin");
     cout << "Indice primario criado com sucesso!" << endl;
+    arvore_secundaria.serializeBPlusTree(arvore_secundaria, "indice_secundario.bin");
+    cout << "Indice secundario criado com sucesso!" << endl;
 
 
     // // Fechamento do arquivo de entrada de registros

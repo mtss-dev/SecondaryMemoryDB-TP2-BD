@@ -79,8 +79,23 @@ void inserir_registro_bloco(ifstream& leitura, ofstream& escrita, BlocoCabecalho
     delete bloco;
 }
 
+int gerar_inteiro(string titulo)
+{
+    int chave = 0;
+    int g = 31;
+    int tam = titulo.size();
+
+    for (int i = 0; i < tam; i++)
+        chave = g * chave + (int)titulo[i];
+
+    if (chave < 0)
+        return (chave * -1) + titulo.size();
+    else
+        return chave + titulo.size();
+}
+
 // Função para inserir um registro em um bucket
-bool inserir_registro_bucket(HashTable *hashtable, Registro *registro, ifstream &entrada, ofstream &saida, BPlusTree &btree)
+bool inserir_registro_bucket(HashTable *hashtable, Registro *registro, ifstream &entrada, ofstream &saida, BPlusTree &btree1, BPlusTree &btree2)
 {
     int indice_bucket = hashFunction(registro->id); // calcula o índice do bucket apropriado
     Bucket *bucket = hashtable->buckets[indice_bucket];
@@ -90,13 +105,15 @@ bool inserir_registro_bucket(HashTable *hashtable, Registro *registro, ifstream 
         int tam = bloco->cabecalho->tamanho_disponivel;
         if (tam >= registro->tamanho)
         {   
-            
+
             int soma =  indice_bucket * BLOCK_SIZE * NUM_BLOCKS; //Inicio do Bucket
             soma += (bucket->ultimo_bloco * BLOCK_SIZE) + sizeof(BlocoCabecalho) + bloco->cabecalho->posicoes_registros[bloco->cabecalho->quantidade_registros];
 
-            RegArvore *reg = new RegArvore(registro->id, soma); // adiciona o registro à árvore);
+            RegArvore *reg = new RegArvore(registro->id, soma); // adiciona o registro à árvore b+ do indice primario;
+            RegArvore *reg2 = new RegArvore(gerar_inteiro(registro->title), soma); // adiciona o registro à árvore b+ do indice secundario;
             
-            btree.insert(reg);
+            btree1.insert(reg);
+            btree2.insert(reg2);
             inserir_registro_bloco(entrada, saida, bloco->cabecalho, registro, bucket->ultimo_bloco, indice_bucket); // adiciona o registro ao bloco
             bucket->ultimo_bloco = 0;
             return true;
