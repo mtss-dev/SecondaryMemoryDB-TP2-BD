@@ -41,16 +41,16 @@ int main() {
 
     // Imprimir as chaves da árvore desserializada
     // std::cout << "Chaves da árvore desserializada: ";
-    // Node<RegArvore> r = deserializedTree.search(60);
+    Node<RegArvore> r = deserializedTree.search(1549146);
 
-    //     for (int i = 0; i < r.size; i++) {
-    //         if (r.item[i].chave == 60) {
-    //             cout << r.item[i].chave << endl;
-    //             cout << r.item[i].valor << endl;
-    //         }
+        for (int i = 0; i < r.size; i++) {
+            if (r.item[i].chave == 1549146) {
+                cout << r.item[i].chave << endl;
+                cout << r.item[i].valor << endl;
+            }
             
-    //     }
-    deserializedTree.bpt_print();
+        }
+    // deserializedTree.bpt_print();
 
     return 0;
 }

@@ -7,55 +7,27 @@ using namespace std;
 
 
 int main(int argc, char const *argv[])
-{
-    Registro* registro = new Registro();
+{   
+    system("clear");
+    if (argc < 2) {
+        std::cout << "Uso: ./seek1 <id_busca>" << std::endl;
+        return 1;
+    }
 
-    // Abertura do arquivo de dados organizado por hashing
-    ifstream leitura("data.bin", ios::binary | ios::in);
+    //Abertura do arquivo de dados organizado por hashing
+    ifstream dataFileI("arquivo_de_dados.bin", ios::binary | ios::in);
+    string indice_primario = "indice_primario.bin";
 
-    leitura.seekg(216300931);
+    Registro* registro_busca = buscar_registro_bpt(indice_primario,dataFileI, atoi(argv[1]));
+    if(registro_busca != NULL) {
+        cout << "\nCampos do Registros:" << endl;
+        imprimeRegistro(*registro_busca);
+    } else {
+        cout << "Registro não encontrado!" << endl;
+    }
 
-    leitura.read(reinterpret_cast<char*>(&registro->id), sizeof(int));
+    //Fechamento do arquivo de dados organizado por hashing
+    dataFileI.close();
 
-    cout << "ID: " << registro->id << endl;
-    //1401200
-    //1401200
-    return 0;
-
-    // leitura.read(reinterpret_cast<char*>(bloco->cabecalho), sizeof(BlocoCabecalho));
-
-    // int endereco_exato = inicio_bucket + sizeof(BlocoCabecalho);
-
-    // leitura.read(reinterpret_cast<char*>(bloco->dados), BLOCK_SIZE - sizeof(BlocoCabecalho));
-
-    // int posicao = bloco->cabecalho->posicoes_registros[3];
-
-    // memcpy(&registro->id, &bloco->dados[posicao], sizeof(int));
-
-    // if(registro->id == id){
-    //     cout << "Encontrou" << endl;
-    //     endereco_exato += posicao;
-    //     cout << "ID: " << registro->id << endl;
-    //     cout << "Endereço exato: " << endereco_exato << endl;
-    // }
-    
     return 0;
 }
-
-
-// int main(int argc, char const *argv[])
-// {
-//     BPTree tree2(ORDER);
-//     // Desserializar a árvore a partir do arquivo binário
-//     cout << "Desserializando a árvore B+ do arquivo bptree.bin..." << endl;
-//     tree2.deserializeTree("bptree.bin");
-//     cout << "Árvore B+ desserializada.\n" << endl;
-
-//     // Exibir a árvore desserializada
-//     int tam = tree2.calculateSize(tree2.getRoot());
-//     cout << "Tamanho em bytes da árvore B+ desserializada:" << tam << endl;
-//     // tree2.display(tree2.getRoot(), 0);
-
-//     // tree2.search(10);
-//     return 0;
-// }

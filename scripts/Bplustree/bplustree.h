@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <fstream>
+#include "../Registro/registro.h"
 
 using namespace std;
 
@@ -59,7 +60,6 @@ public:
     //     clear(this->root);
     // }
 
-
     Node<RegArvore>* getroot(){
         return this->root;
     }
@@ -71,6 +71,7 @@ public:
         else{
             Node<RegArvore>* cursor = node; // cursor finding key
 
+            int altura = 1;
             while(!cursor->is_leaf){ // until cusor pointer arrive leaf
                 for(int i=0; i<cursor->size; i++){ //in this index node, find what we want key
                     if(key.chave < cursor->item[i].chave){ //find some range, and let find their child also.
@@ -82,15 +83,16 @@ public:
                         break;
                     }
                 }
+                altura++;
             }
-
             //search for the key if it exists in leaf node.
             for(int i=0; i<cursor->size; i++){
                 if(cursor->item[i].chave == key.chave){
+                    cout << "Quantidade de blocos lidos para encontrar o registro no arquivo de índice: " << altura << endl;
                     return cursor;
                 }
             }
-
+            
             return nullptr;
         }
     }
@@ -141,8 +143,9 @@ int range_search(int start, int end, RegArvore* result_data, int arr_length) {
     return index;
 }
 
-    Node<RegArvore> search(int chave) {  // Return true if the item exists. Return false if it does not.
-        return *BPlusTreeSearch(this->root, RegArvore(chave, 0)) ;
+    Node<RegArvore>* search(int chave) {  // Return true if the item exists. Return false if it does not.
+        
+        return BPlusTreeSearch(this->root, RegArvore(chave, 0)) ;
     }
 
     int find_index(RegArvore* arr, RegArvore data, int len){
@@ -482,6 +485,75 @@ int range_search(int start, int end, RegArvore* result_data, int arr_length) {
     }
 
 };
+
+int countNodes(Node<RegArvore>* node) {
+    if (node == nullptr) {
+        return 0;
+    }
+
+    int count = 1; // conta o próprio nó
+
+    if (!node->is_leaf) {
+        for (size_t i = 0; i <= node->size; i++) {
+            count += countNodes(node->children[i]); // conta os nós filhos recursivamente
+        }
+    }
+
+    return count;
+}
+
+
+Registro* buscar_registro_bpt(string index_filename, ifstream& dataFile, int id_busca) {
+    BPlusTree bpt(MAX_KEYS);
+
+    bpt = bpt.deserializeBPlusTree(index_filename);
+
+    Registro* registro = new Registro();
+    Node<RegArvore>* node = bpt.search(id_busca);
+
+    RegArvore* reg = new RegArvore(-1, -1); // Inicializa com valores inválidos
+    
+    if(node != nullptr) {
+        // Busca o registro no nó
+        for (int i = 0; i < node->size; i++) {
+            // Se encontrou o registro
+            if (node->item[i].chave == id_busca) {
+                reg->chave = node->item[i].chave;
+                reg->valor = node->item[i].valor;
+                break;
+            }
+        }
+
+        // Se não encontrou o registro
+        if(reg->chave == -1) {
+            return NULL;
+        }else{
+            dataFile.seekg(reg->valor);
+            dataFile.read(reinterpret_cast<char*>(&registro->id), sizeof(int));
+
+            // Deserializa os demais campos do registro
+            getline(dataFile, registro->title, '\0');
+            dataFile.read(reinterpret_cast<char*>(&registro->year), sizeof(int));
+            getline(dataFile, registro->authors, '\0');
+            dataFile.read(reinterpret_cast<char*>(&registro->citations), sizeof(int));
+            getline(dataFile, registro->update, '\0');
+            getline(dataFile, registro->snippet, '\0');
+
+            
+            registro->tamanho = sizeof(int) + registro->title.size() + 1 +
+                                sizeof(int) + registro->authors.size() + 1 +
+                                sizeof(int) + registro->update.size() + 1 +
+                                registro->snippet.size() + 1;
+
+            int totalNodes = countNodes(bpt.getroot());
+            cout << "Quantidade total de blocos do arquivo de índice primário: " << totalNodes << endl;
+            return registro;
+        }
+    }else{
+        return NULL;
+    }
+}
+
 
 
 
