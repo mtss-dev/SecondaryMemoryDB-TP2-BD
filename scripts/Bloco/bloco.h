@@ -2,6 +2,7 @@
 #define BLOCO_H
 
 #include "vector"
+#include "../Constantes/constantes.h"
 
 using namespace std;
 

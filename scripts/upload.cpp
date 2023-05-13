@@ -20,7 +20,7 @@ int main(int argc, char const *argv[])
 
     // Nome do arquivo de entrada
     string arquivo_csv = "artigo.csv";
-    string arquivo_dados = "data2.bin";
+    string arquivo_dados = "data.bin";
 
     // Criação do arquivo de dados
     ofstream dataFile(arquivo_dados, ios::binary | ios::out);
@@ -81,24 +81,24 @@ int main(int argc, char const *argv[])
     // Fechamento do arquivo de dados (Para escrita e leitura)
     dataFile.close();
 
-                     while(true){
-                    int id = 0;
-                    printf("Digite o id a ser buscado: ");
-                    scanf("%d", &id);
-                 
-                    if(id == -1){
-                        break;
-                    }
-                    Node<RegArvore> r = arvore_primaria.search(id);
+    while(true){
+        int id = 0;
+        printf("Digite o id a ser buscado: ");
+        scanf("%d", &id);
+        
+        if(id == -1){
+            break;
+        }
+        Node<RegArvore> r = arvore_primaria.search(id);
 
-                    for (int i = 0; i < r.size; i++) {
-                        if (r.item[i].chave == id) {
-                            cout << r.item[i].chave << endl;
-                            cout << r.item[i].valor << endl;
-                        }
-                       
-                    }
-                }
+        for (int i = 0; i < r.size; i++) {
+            if (r.item[i].chave == id) {
+                cout << r.item[i].chave << endl;
+                cout << r.item[i].valor << endl;
+            }
+            
+        }
+    }
 
     return 0;
 }

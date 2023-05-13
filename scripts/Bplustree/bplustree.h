@@ -17,14 +17,14 @@ struct RegArvore {
 template <typename T>
 struct Node {
     bool is_leaf;
-    std::size_t degree; // maximum number of children
-    std::size_t size; // current number of item
+    size_t degree; // maximum number of children
+    size_t size; // current number of item
     RegArvore* item;
     Node<RegArvore>** children;
     Node<RegArvore>* parent;
 
 public:
-    Node(std::size_t _degree) {// Constructor
+    Node(size_t _degree) {// Constructor
         this->is_leaf = false;
         this->degree = _degree;
         this->size = 0;
@@ -48,10 +48,10 @@ public:
 class BPlusTree {
 public:
     Node<RegArvore>* root;
-    std::size_t degree;
+    size_t degree;
 
 public:
-    BPlusTree(std::size_t _degree) {// Constructor
+    BPlusTree(size_t _degree) {// Constructor
         this->root = nullptr;
         this->degree = _degree;
     }
@@ -379,10 +379,10 @@ int range_search(int start, int end, RegArvore* result_data, int arr_length) {
     void print(Node<RegArvore>* cursor) {
         if (cursor != NULL) {
             for (int i = 0; i < cursor->size; ++i) {
-                std::cout  << cursor->item[i].chave << " ";
-                std::cout  <<cursor->item[i].valor << " ";
+                cout  << cursor->item[i].chave << " ";
+                cout  <<cursor->item[i].valor << " ";
             }
-            std::cout << "\n";
+            cout << "\n";
 
             if (!cursor->is_leaf) {
                 for (int i = 0; i < cursor->size + 1; ++i) {
@@ -392,80 +392,95 @@ int range_search(int start, int end, RegArvore* result_data, int arr_length) {
         }
     }
 
-    void serialize_node(std::ofstream& file, Node<RegArvore>* node) {
-        // Escreve o is_leaf, o degree e o size do nó no arquivo
-        
-        cout << "node->is_leaf: " << node->is_leaf << endl;
-        cout << "node->degree: " << node->degree << endl;
-        cout << "node->size: " << node->size << endl;
-        
-        file.write(reinterpret_cast<const char*>(&node->is_leaf), sizeof(bool));
-        file.write(reinterpret_cast<const char*>(&node->degree), sizeof(int));
-        file.write(reinterpret_cast<const char*>(&node->size), sizeof(int));
-
-        // Escreve os registros (item) do nó no arquivo
-        for (int i = 0; i < node->size; i++) {
-            file.write(reinterpret_cast<const char*>(&node->item[i]), sizeof(RegArvore));
+    // Function to serialize a B+ tree to a binary file
+    void serializeBPlusTree(const BPlusTree& tree, const std::string& filename) {
+        ofstream file(filename, ios::binary | ios::out);
+        if (!file) {
+            cerr << "Error opening file for serialization: " << filename << endl;
+            return;
         }
 
-        // Se o nó não é uma folha, escreve os ponteiros (children) do nó no arquivo
-        if (!node->is_leaf) {
-            for (int i = 0; i < node->size + 1; i++) {
-                serialize_node(file, node->children[i]);
+        // Write the degree of the B+ tree to the file
+        size_t degree = tree.degree;
+        file.write(reinterpret_cast<const char*>(&degree), sizeof(degree));
+
+        // Serialize the tree recursively starting from the root node
+        serializeNode(file, tree.root);
+
+        file.close();
+    }
+
+    // Recursive function to serialize a node and its children
+    void serializeNode(ofstream& file, const Node<RegArvore>* node) {
+        // Write the node's information to the file
+        file.write(reinterpret_cast<const char*>(&node->is_leaf), sizeof(node->is_leaf));
+        file.write(reinterpret_cast<const char*>(&node->size), sizeof(node->size));
+        file.write(reinterpret_cast<const char*>(node->item), sizeof(RegArvore) * (node->degree - 1));
+
+        // Recursively serialize the children nodes
+        for (size_t i = 0; i < node->degree; ++i) {
+            if (node->children[i] != nullptr) {
+                serializeNode(file, node->children[i]);
             }
         }
     }
 
-    void serialize_tree(std::ofstream& file) {
-        serialize_node(file, this->root);
+    // Function to deserialize a B+ tree from a binary file
+    BPlusTree deserializeBPlusTree(const string& filename) {
+        ifstream file(filename, ios::binary | ios::in);
+        if (!file) {
+            cerr << "Error opening file for deserialization: " << filename << endl;
+            return BPlusTree(0);  // Return an empty B+ tree
+        }
+
+        // Read the degree of the B+ tree from the file
+        size_t degree;
+        file.read(reinterpret_cast<char*>(&degree), sizeof(degree));
+
+        // Create a new B+ tree with the given degree
+        BPlusTree tree(degree);
+
+        // Deserialize the tree recursively starting from the root node
+        tree.root = deserializeNode(file, nullptr, degree);
+
+        file.close();
+
+        return tree;
+    }
+
+    // Recursive function to deserialize a node and its children
+    Node<RegArvore>* deserializeNode(ifstream& file, Node<RegArvore>* parent, size_t degree) {
+        // Read the node's information from the file
+        bool is_leaf;
+        size_t size;
+        file.read(reinterpret_cast<char*>(&is_leaf), sizeof(is_leaf));
+        file.read(reinterpret_cast<char*>(&size), sizeof(size));
+
+        // Create a new node
+        auto* node = new Node<RegArvore>(degree);
+        node->is_leaf = is_leaf;
+        node->size = size;
+        node->parent = parent;
+
+        // Read the node's items from the file
+        node->item = new RegArvore[degree - 1];
+        file.read(reinterpret_cast<char*>(node->item), sizeof(RegArvore) * (degree - 1));
+
+        if (is_leaf) {
+            node->children = nullptr;
+        } else {
+            // Read the child pointers from the file
+            node->children = new Node<RegArvore>*[degree];
+            for (size_t i = 0; i < size + 1; ++i) {
+                node->children[i] = deserializeNode(file, node, degree);
+            }
+        }
+
+        return node;
     }
 
 };
 
-    Node<RegArvore>* deserialize_node(std::ifstream& file, int degree) {
-        Node<RegArvore>* node = new Node<RegArvore>(degree);
-        // Lê o is_leaf, o degree e o size do nó do arquivo
-        file.read(reinterpret_cast<char*>(&node->is_leaf), sizeof(bool));
-        file.read(reinterpret_cast<char*>(&node->degree), sizeof(int));
-        file.read(reinterpret_cast<char*>(&node->size), sizeof(int));
-
-        // Aloca memória para os registros (item) do nó e lê os dados do arquivo
-        node->item = new RegArvore[node->degree];
-
-        cout << node->size << endl;
-
-        for (int i = 0; i < node->size; i++) {
-            file.read(reinterpret_cast<char*>(&node->item[i]), sizeof(RegArvore));
-        }
-
-    // Se o nó não é uma folha, aloca memória para os ponteiros (children) do nó e os lê do arquivo
-    if (!node->is_leaf) {
-        node->children = new Node<RegArvore>*[node->degree + 1];
-        for (int i = 0; i < node->size + 1; i++) {
-            node->children[i] = deserialize_node(file, degree);
-        }
-    }
-
-    return node;
-}
-
-BPlusTree deserialize_tree(const std::string& filename) {
-    std::ifstream file(filename, std::ios::binary);
-
-    if (!file.is_open()) {
-        throw std::runtime_error("Failed to open file for deserialization.");
-    }
-
-    std::size_t degree;
-    file.read(reinterpret_cast<char*>(&degree), sizeof(std::size_t));
-    BPlusTree tree(degree);
-
-    Node<RegArvore>* root = deserialize_node(file, degree);
-    tree.root = root;
-
-    file.close();
-    return tree;
-}
 
 
 #endif //BPTREE_BPTREE_H
