@@ -1,7 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <cstring>
-#include "Hash/hash.h"
+#include "Hash/hash.hpp"
 
 using namespace std;
 
@@ -14,7 +14,7 @@ int main(int argc, char const *argv[])
     }
 
     //Abertura do arquivo de dados organizado por hashing
-    ifstream dataFileI("arquivo_de_dados.bin", ios::binary | ios::in);
+    ifstream dataFileI("Arquivos/arquivo_de_dados.bin", ios::binary | ios::in);
 
     Registro* registro_busca = buscar_registro(dataFileI, atoi(argv[1]));
     if(registro_busca != NULL) {

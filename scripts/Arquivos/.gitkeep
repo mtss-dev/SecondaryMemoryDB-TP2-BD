@@ -1,0 +1,5 @@
+Pasta para armazenar os arquivos necessários:
+
+● Arquivo de dados organizado por hashing
+● Arquivo de índice primário usando uma B+Tree armazenada em memória secundária
+● Arquivo de índice secundário usando uma outra B+Tree em memória secundária

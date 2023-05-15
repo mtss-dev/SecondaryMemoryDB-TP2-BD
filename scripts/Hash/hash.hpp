@@ -1,13 +1,13 @@
-#ifndef HASH_H
-#define HASH_H
+#ifndef HASH_HPP
+#define HASH_HPP
 
-#include "../Bplustree/bplustree.h"
-#include "../Registro/registro.h"
-#include "../Constantes/constantes.h"
-#include "../Bloco/bloco.h"
-#include "../Bucket/bucket.h"
-#include "../Registro/registro.h"
-#include "iostream"
+#include "../Bplustree/bplustree.hpp"
+#include "../Registro/registro.hpp"
+#include "../Constantes/constantes.hpp"
+#include "../Bloco/bloco.hpp"
+#include "../Bucket/bucket.hpp"
+#include "../Registro/registro.hpp"
+#include <iostream>
 
 using namespace std;
 
@@ -184,6 +184,5 @@ Registro* buscar_registro(ifstream& leitura, int id_busca) {
     // Retorna NULL se o registro não for encontrado
     return nullptr;
 }
-
 
 #endif

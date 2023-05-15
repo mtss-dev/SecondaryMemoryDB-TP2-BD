@@ -1,7 +1,7 @@
 #include "iostream"
 #include "fstream"
-#include "Bplustree/bplustree.h"
-#include "Hash/hash.h"
+#include "Bplustree/bplustree.hpp"
+#include "Hash/hash.hpp"
 
 using namespace std;
 
@@ -15,8 +15,8 @@ int main(int argc, char const *argv[])
     }
 
     //Abertura do arquivo de dados organizado por hashing
-    ifstream dataFileI("arquivo_de_dados.bin", ios::binary | ios::in);
-    string indice_primario = "indice_secundario.bin";
+    ifstream dataFileI("Arquivos/arquivo_de_dados.bin", ios::binary | ios::in);
+    string indice_primario = "Arquivos/indice_secundario.bin";
 
 
     Registro* registro_busca = buscar_registro_bpt(indice_primario,dataFileI, gerar_inteiro(remove_unicode(argv[1])));

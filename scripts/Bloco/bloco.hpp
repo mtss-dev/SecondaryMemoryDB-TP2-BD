@@ -1,8 +1,9 @@
-#ifndef BLOCO_H
-#define BLOCO_H
+#ifndef BLOCO_HPP
+#define BLOCO_HPP
 
-#include "vector"
-#include "../Constantes/constantes.h"
+#include <vector>
+#include "../Registro/registro.hpp"
+#include "../Constantes/constantes.hpp"
 
 using namespace std;
 

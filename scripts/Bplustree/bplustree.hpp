@@ -1,10 +1,10 @@
-#ifndef BPLUSTREE_H
-#define BPLUSTREE_H
+#ifndef BPLUSTREE_HPP
+#define BPLUSTREE_HPP
 
 #include <iostream>
 #include <fstream>
-#include "../Registro/registro.h"
-#include "../Constantes/constantes.h"
+#include "../Registro/registro.hpp"
+#include "../Constantes/constantes.hpp"
 
 using namespace std;
 
@@ -57,9 +57,6 @@ public:
         this->root = nullptr;
         this->degree = _degree;
     }
-    // ~BPlusTree() { // Destructor
-    //     clear(this->root);
-    // }
 
     Node<RegArvore>* getroot(){
         return this->root;
@@ -376,6 +373,7 @@ int range_search(int start, int end, RegArvore* result_data, int arr_length) {
             }
         }
     }
+
     void bpt_print(){
         print(this->root);
     }
@@ -416,13 +414,13 @@ int range_search(int start, int end, RegArvore* result_data, int arr_length) {
 
     // Função recursiva para serializar um nó e seus filhos
     void serializeNode(ofstream& file, const Node<RegArvore>* node) {
-        // Escrever as informações do nó no arquivo
+        // Escrever as informações do nó no arquivo (is_leaf e size)
         bool is_leaf = node->is_leaf;
         size_t size = node->size;
         file.write(reinterpret_cast<const char*>(&is_leaf), sizeof(is_leaf));
         file.write(reinterpret_cast<const char*>(&size), sizeof(size));
 
-        // Escrever os itens do nó no arquivo
+        // Escrever os itens do nó no arquivo (registros)
         file.write(reinterpret_cast<const char*>(node->item), sizeof(RegArvore) * (node->degree - 1));
 
         if (!is_leaf) {
@@ -487,6 +485,7 @@ int range_search(int start, int end, RegArvore* result_data, int arr_length) {
 
 };
 
+// Função para contar o número de nós de uma árvore B+
 int countNodes(Node<RegArvore>* node) {
     if (node == nullptr) {
         return 0;
@@ -503,7 +502,7 @@ int countNodes(Node<RegArvore>* node) {
     return count;
 }
 
-
+// Função para buscar um registro em uma árvore B+
 Registro* buscar_registro_bpt(string index_filename, ifstream& dataFile, int id_busca) {
     BPlusTree bpt(MAX_KEYS);
 
@@ -554,8 +553,5 @@ Registro* buscar_registro_bpt(string index_filename, ifstream& dataFile, int id_
         return NULL;
     }
 }
-
-
-
 
 #endif //BPTREE_BPTREE_H

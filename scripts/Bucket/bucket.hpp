@@ -1,10 +1,10 @@
-#ifndef BUCKET_H
-#define BUCKET_H
+#ifndef BUCKET_HPP
+#define BUCKET_HPP
 
-#include "list"
-#include "../Bloco/bloco.h"
-#include "../Constantes/constantes.h"
-#include "iostream"
+#include <iostream>
+#include <list>
+#include "../Bloco/bloco.hpp"
+#include "../Constantes/constantes.hpp"
 
 using namespace std;
 

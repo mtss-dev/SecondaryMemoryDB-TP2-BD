@@ -37,8 +37,12 @@
 /scripts/.vscode/
 /scripts/output/
 /scripts/*.csv
-/scripts/*.bin
 /scripts/*.txt
 .vscode/
-/scripts/findrec
 /scripts/upload
+/scripts/findrec
+/scripts/seek1
+/scripts/seek2
+*.exe
+
+/scripts/Arquivos/*.bin

@@ -1,5 +1,5 @@
-#ifndef REGISTRO_H
-#define REGISTRO_H
+#ifndef REGISTRO_HPP
+#define REGISTRO_HPP
 
 #include <iostream>
 #include <fstream>
@@ -80,20 +80,12 @@ Registro* lineToRegister(string entry_line){
     }
 
     if (fields.size() != 7){
-        // cout << fields[0] << endl;
-        // cout << "ERRO: faltou campos" << endl;
         return NULL;
     }
-    // for(int i = 0; i < fields.size(); i++){
-    //     cout << fields[i] << endl;
-    // }
     try{
        return criarRegistro(stoi(fields[0]), fields[1], stoi(fields[2]), fields[3], stoi(fields[4]), fields[5], fields[6]);
     }
     catch(const std::exception& e){
-       
-        // cout << fields[0] << endl;
-        // cout << "ERRO: faltou campos, algum falhou na conversão" << endl;
         return NULL;
     }
 }
