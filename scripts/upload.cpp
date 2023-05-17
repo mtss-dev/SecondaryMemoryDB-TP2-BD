@@ -4,8 +4,6 @@
 #include "Hash/hash.hpp"
 #include "Bplustree/bplustree.hpp"
 #include <chrono>
-#include <sys/resource.h>
-#include <sys/sysinfo.h>
 
 using namespace std;
 
@@ -50,8 +48,6 @@ int main(int argc, char const *argv[])
 
     cout << "Inserindo registros no arquivo de dados..." << endl;
 
-    int cont = 0;
-    bool inserido = true;
     BPlusTree arvore_primaria(MAX_KEYS);
     BPlusTree arvore_secundaria(MAX_KEYS);
     // Leitura dos registros do arquivo de entrada
@@ -60,25 +56,16 @@ int main(int argc, char const *argv[])
         while (getline(entry_file, line)){
             Registro* r = lineToRegister(line);
             if(r != NULL){
-                inserido = inserir_registro_bucket(hashTable, r,dataFileI,dataFile,arvore_primaria, arvore_secundaria);
-            }
-            if(!inserido){
-                cout << "Erro ao inserir registro!" << endl;
-                cout << "Bucket cheio!" << endl;
-                cout << "Total de registros inseridos: " << cont << endl;
-                return 1;
-            }else{
-                cont++;
+                inserir_registro_bucket(hashTable, r,dataFileI,dataFile,arvore_primaria, arvore_secundaria);
             }
         }
     }
-    cout << "Arquivo de dados criado com sucesso!" << endl;
-    cout << "Total de registros inseridos: " << cont << endl;
-    arvore_primaria.serializeBPlusTree(arvore_primaria, "Arquivos/indice_primario.bin");
-    cout << "Indice primario criado com sucesso!" << endl;
-    arvore_secundaria.serializeBPlusTree(arvore_secundaria, "Arquivos/indice_secundario.bin");
-    cout << "Indice secundario criado com sucesso!" << endl;
 
+    cout << "Arquivo de dados criado com sucesso!" << endl;
+    arvore_primaria.serializeBPlusTree(arvore_primaria, "Arquivos/indice_primario.bin");
+    arvore_secundaria.serializeBPlusTree(arvore_secundaria, "Arquivos/indice_secundario.bin");
+    cout << "Indice primario e secundario criado com sucesso!" << endl;
+    
 
     // // Fechamento do arquivo de entrada de registros
     entry_file.close();
@@ -86,6 +73,7 @@ int main(int argc, char const *argv[])
     dataFileI.close();
     // Fechamento do arquivo de dados (Para escrita e leitura)
     dataFile.close();
+
     // Registrar o tempo de término
     auto end = chrono::high_resolution_clock::now();
 

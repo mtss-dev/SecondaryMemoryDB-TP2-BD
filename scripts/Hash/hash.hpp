@@ -14,13 +14,11 @@ using namespace std;
 // Definição da estrutura da hash table
 struct HashTable {
     Bucket* buckets[NUM_BUCKETS];
-    int quantidade_registros;
 };
 
 // Função para criar uma hash table
 HashTable* criarHashTable(ofstream& dataFile) {
     HashTable* hashTable = new HashTable();
-    hashTable->quantidade_registros = 0;
     for (int i = 0; i < NUM_BUCKETS; i++) {
         hashTable->buckets[i] = criarBucket(dataFile);
     }
@@ -95,7 +93,7 @@ int gerar_inteiro(string titulo)
 }
 
 // Função para inserir um registro em um bucket
-bool inserir_registro_bucket(HashTable *hashtable, Registro *registro, ifstream &entrada, ofstream &saida, BPlusTree &btree1, BPlusTree &btree2)
+void inserir_registro_bucket(HashTable *hashtable, Registro *registro, ifstream &entrada, ofstream &saida, BPlusTree &btree1, BPlusTree &btree2)
 {
     int indice_bucket = hashFunction(registro->id); // calcula o índice do bucket apropriado
     Bucket *bucket = hashtable->buckets[indice_bucket];
@@ -116,12 +114,11 @@ bool inserir_registro_bucket(HashTable *hashtable, Registro *registro, ifstream 
             btree2.insert(reg2);
             inserir_registro_bloco(entrada, saida, bloco->cabecalho, registro, bucket->ultimo_bloco, indice_bucket); // adiciona o registro ao bloco
             bucket->ultimo_bloco = 0;
-            return true;
+            return;
         }else{
             bucket->ultimo_bloco++;
         }
     }
-    return false;
 }
 
 //Função para buscar um registro no arquivo de dados
