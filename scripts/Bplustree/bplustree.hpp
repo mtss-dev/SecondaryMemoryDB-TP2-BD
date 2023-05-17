@@ -86,7 +86,7 @@ public:
             // Verifica se a chave existe no nó folha
             for(int i=0; i<cursor->size; i++){
                 if(cursor->item[i].chave == key.chave){
-                    cout << "Quantidade de blocos lidos para encontrar o registro no arquivo de índice: " << altura << endl;
+                    cout << "Quantidade de blocos lidos para encontrar o registro no arquivo de índice: " << altura + 1 << endl;
                     return cursor;
                 }
             }
