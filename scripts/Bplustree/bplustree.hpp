@@ -19,14 +19,14 @@ struct RegArvore {
 template <typename T>
 struct Node {
     bool is_leaf;
-    size_t degree; // maximum number of children
-    size_t size; // current number of item
+    size_t degree; // número máximo de filhos que um nó pode ter
+    size_t size; // número atual de chaves no nó
     RegArvore* item;
     Node<RegArvore>** children;
     Node<RegArvore>* parent;
 
 public:
-    Node(size_t _degree) {// Constructor
+    Node(size_t _degree) { // função construtora
         this->is_leaf = false;
         this->degree = _degree;
         this->size = 0;
@@ -53,7 +53,7 @@ public:
     size_t degree;
 
 public:
-    BPlusTree(size_t _degree) {// Constructor
+    BPlusTree(size_t _degree) {// função construtora
         this->root = nullptr;
         this->degree = _degree;
     }
@@ -63,16 +63,16 @@ public:
     }
 
     Node<RegArvore>* BPlusTreeSearch(Node<RegArvore>* node, RegArvore key){
-        if(node == nullptr) { // if root is null, return nullptr
+        if(node == nullptr) { // se a raiz for nula, retorne nulo
             return nullptr;
         }
         else{
-            Node<RegArvore>* cursor = node; // cursor finding key
+            Node<RegArvore>* cursor = node; // curso para encontrar a chave
 
             int altura = 1;
-            while(!cursor->is_leaf){ // until cusor pointer arrive leaf
-                for(int i=0; i<cursor->size; i++){ //in this index node, find what we want key
-                    if(key.chave < cursor->item[i].chave){ //find some range, and let find their child also.
+            while(!cursor->is_leaf){ // até o cursor chegar na folha
+                for(int i=0; i<cursor->size; i++){ // neste nó de índice, encontre o que queremos a chave
+                    if(key.chave < cursor->item[i].chave){ // encontre algum intervalo e deixe encontrar seu filho também.
                         cursor = cursor->children[i];
                         break;
                     }
@@ -83,7 +83,7 @@ public:
                 }
                 altura++;
             }
-            //search for the key if it exists in leaf node.
+            // Verifica se a chave existe no nó folha
             for(int i=0; i<cursor->size; i++){
                 if(cursor->item[i].chave == key.chave){
                     cout << "Quantidade de blocos lidos para encontrar o registro no arquivo de índice: " << altura << endl;
@@ -96,15 +96,15 @@ public:
     }
 
     Node<RegArvore>* BPlusTreeRangeSearch(Node<RegArvore>* node, RegArvore key){
-    if(node == nullptr) { // if root is null, return nullptr
+    if(node == nullptr) { // se a raiz for nula, retorne nulo
         return nullptr;
     }
     else{
-        Node<RegArvore>* cursor = node; // cursor finding key
+        Node<RegArvore>* cursor = node; //  até o cursor chegar na folha
 
-        while(!cursor->is_leaf){ // until cusor pointer arrive leaf
-            for(int i=0; i<cursor->size; i++){ //in this index node, find what we want key
-                if(key.chave < cursor->item[i].chave){ //find some range, and let find their child also.
+        while(!cursor->is_leaf){ // até o cursor chegar na folha
+            for(int i=0; i<cursor->size; i++){ // neste nó de índice, encontre o que queremos a chave
+                if(key.chave < cursor->item[i].chave){ // encontre algum intervalo e deixe encontrar seu filho também.
                     cursor = cursor->children[i];
                     break;
                 }
@@ -118,6 +118,7 @@ public:
     }
 }
 
+// Função para buscar um registro em uma árvore B+
 int range_search(int start, int end, RegArvore* result_data, int arr_length) {
     int index=0;
 
@@ -141,7 +142,7 @@ int range_search(int start, int end, RegArvore* result_data, int arr_length) {
     return index;
 }
 
-    Node<RegArvore>* search(int chave) {  // Return true if the item exists. Return false if it does not.
+    Node<RegArvore>* search(int chave) {  // função para procurar uma chave
         
         return BPlusTreeSearch(this->root, RegArvore(chave, 0)) ;
     }
@@ -161,6 +162,7 @@ int range_search(int start, int end, RegArvore* result_data, int arr_length) {
         return index;
     }
 
+    // Função para inserir um item em um nó
     RegArvore* item_insert(RegArvore* arr, RegArvore data, int len){
         int index = 0;
         for(int i=0; i<len; i++){
@@ -183,6 +185,7 @@ int range_search(int start, int end, RegArvore* result_data, int arr_length) {
         return arr;
     }
 
+    // Função para inserir um filho em um nó
     Node<RegArvore>** child_insert(Node<RegArvore>** child_arr, Node<RegArvore>*child,int len,int index){
         for(int i= len; i > index; i--){
             child_arr[i] = child_arr[i - 1];
@@ -191,6 +194,7 @@ int range_search(int start, int end, RegArvore* result_data, int arr_length) {
         return child_arr;
     }
 
+    // Função para inserir um item e um filho em um nó
     Node<RegArvore>* child_item_insert(Node<RegArvore>* node, RegArvore data, Node<RegArvore>* child){
         int item_index=0;
         int child_index=0;
@@ -219,20 +223,21 @@ int range_search(int start, int end, RegArvore* result_data, int arr_length) {
         return node;
     }
 
+    // Função para inserir um item em um nó folha
     void InsertPar(Node<RegArvore>* par, Node<RegArvore>* child, RegArvore data) {
-        // overflow check
+        // checar overflow
         Node<RegArvore>* cursor = par;
-        if (cursor->size < this->degree - 1) { // not overflow, just insert in the correct position
-            // insert item, child, and reallocate
+        if (cursor->size < this->degree - 1) { // sem overflow, apenas insira na posição correta
+            // insere item e rearranja
             cursor = child_item_insert(cursor, data, child);
             cursor->size++;
         }
         else { // overflow
-            // make new node
+            // cria novo nó
             auto* Newnode = new Node<RegArvore>(this->degree);
             Newnode->parent = cursor->parent;
 
-            // copy item
+            // copia item
             RegArvore* item_copy = new RegArvore[cursor->size + 1];
             for (int i = 0; i < cursor->size; i++) {
                 item_copy[i] = cursor->item[i];
@@ -246,7 +251,7 @@ int range_search(int start, int end, RegArvore* result_data, int arr_length) {
             child_copy[cursor->size + 1] = nullptr;
             child_copy = child_insert(child_copy, child, cursor->size + 1, find_index(item_copy, data, cursor->size + 1));
 
-            // split nodes
+            // divide nós
             cursor->size = (this->degree) / 2;
             if ((this->degree) % 2 == 0) {
                 Newnode->size = (this->degree) / 2 - 1;
@@ -274,8 +279,8 @@ int range_search(int start, int end, RegArvore* result_data, int arr_length) {
             delete[] item_copy;
             delete[] child_copy;
 
-            // parent check
-            if (cursor->parent == nullptr) { // if there are no parent node (root case)
+            // checa se o nó é raiz
+            if (cursor->parent == nullptr) { // se não houver nó pai (caso raiz)
                 auto* Newparent = new Node<RegArvore>(this->degree);
                 cursor->parent = Newparent;
                 Newnode->parent = Newparent;
@@ -288,7 +293,7 @@ int range_search(int start, int end, RegArvore* result_data, int arr_length) {
 
                 this->root = Newparent;
             }
-            else { // if there already have parent node
+            else { // se já houver nó pai
                 InsertPar(cursor->parent, Newnode, paritem);
             }
         }
@@ -297,41 +302,41 @@ int range_search(int start, int end, RegArvore* result_data, int arr_length) {
     void insert(RegArvore* data) {
         RegArvore reg(data->chave, data->valor);
 
-        if (this->root == nullptr) { //if the tree is empty
+        if (this->root == nullptr) { // se a árvore estiver vazia
             this->root = new Node<RegArvore>(this->degree);
             this->root->is_leaf = true;
             this->root->item[0] = *data;
             this->root->size = 1;
-        } else { //if the tree has at least one node
+        } else { // se a árvore não estiver vazia
             Node<RegArvore>* cursor = this->root;
 
-            //move to leaf node
+            // encontre o nó folha para inserir a chave
             cursor = BPlusTreeRangeSearch(cursor, reg);
 
-            //overflow check
-            if (cursor->size < (this->degree - 1)) { // not overflow, just insert in the correct position
-                //item insert and rearrange
+            // checa overflow
+            if (cursor->size < (this->degree - 1)) { // sem overflow, apenas insira na posição correta
+                // insere item e rearranja
                 cursor->item = item_insert(cursor->item, *data, cursor->size);
                 cursor->size++;
-                //edit pointer(next node)
+                // edita ponteiro de próximo nó
                 cursor->children[cursor->size] = cursor->children[cursor->size - 1];
                 cursor->children[cursor->size - 1] = nullptr;
-            } else { //overflow case
-                //make new node
+            } else { //overflow 
+                // cria novo nó
                 auto* Newnode = new Node<RegArvore>(this->degree);
                 Newnode->is_leaf = true;
                 Newnode->parent = cursor->parent;
 
-                //copy item
+                //  copia item
                 RegArvore* item_copy = new RegArvore[cursor->size + 1];
                 for (int i = 0; i < cursor->size; i++) {
                     item_copy[i] = cursor->item[i];
                 }
 
-                //insert and rearrange
+                // insere item
                 item_copy = item_insert(item_copy, *data, cursor->size);
 
-                //split nodes
+                // divide nós
                 cursor->size = (this->degree) / 2;
                 if ((this->degree) % 2 == 0) {
                     Newnode->size = (this->degree) / 2;
@@ -352,10 +357,10 @@ int range_search(int start, int end, RegArvore* result_data, int arr_length) {
 
                 delete[] item_copy;
 
-                //parent check
+                // checa se o nó é raiz
                 RegArvore paritem = Newnode->item[0];
 
-                if (cursor->parent == nullptr) { //if there are no parent node(root case)
+                if (cursor->parent == nullptr) { // se não houver nó pai (caso raiz)
                     auto* Newparent = new Node<RegArvore>(this->degree);
                     cursor->parent = Newparent;
                     Newnode->parent = Newparent;
@@ -367,17 +372,19 @@ int range_search(int start, int end, RegArvore* result_data, int arr_length) {
                     Newparent->children[1] = Newnode;
 
                     this->root = Newparent;
-                } else { //if there already have parent node
+                } else { // se já houver nó pai
                     InsertPar(cursor->parent, Newnode, paritem);
                 }
             }
         }
     }
 
+    // Função para imprimir uma árvore B+
     void bpt_print(){
         print(this->root);
     }
 
+    // Função para imprimir os nós de uma árvore B+ 
     void print(Node<RegArvore>* cursor) {
         if (cursor != NULL) {
             for (int i = 0; i < cursor->size; ++i) {
