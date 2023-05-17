@@ -20,7 +20,7 @@ struct Registro {
     int tamanho;
 };
 
-// Função para criar um registro
+// Função construtora de um registro
 Registro* criarRegistro(int id, string title, int year, string authors, int citations, string update, string snippet) {
     Registro* registro = new Registro();
     registro->id = id;
@@ -48,6 +48,7 @@ void imprimeRegistro(Registro registro) {
     cout << "------------------------" << endl;
 }
 
+// Função para remover caracteres unicode de uma string
 string remove_unicode(string str){
     for (int i = 0; i < str.length(); i++) {
         if (str[i] < 0 || str[i] > 127) {
@@ -57,7 +58,7 @@ string remove_unicode(string str){
     return str;
 }
 
-// Função para serializar um registro
+// Função para converter uma linha do arquivo de entrada em um registro
 Registro* lineToRegister(string entry_line){
     vector<string> fields;
     string field = "";
