@@ -37,18 +37,27 @@ int hashFunction(int id){
     return index;
 }
 
-// Função para destruir a HashTable e liberar toda a memória alocada
-// Função para destruir a HashTable
+int gerar_inteiro(string titulo)
+{
+    int chave = 0;
+    int g = 31;
+    int tam = titulo.size();
+
+    for (int i = 0; i < tam; i++)
+        chave = g * chave + (int)titulo[i];
+
+    if (chave < 0)
+        return (chave * -1) + titulo.size();
+    else
+        return chave + titulo.size();
+}
 
 
 // Função para inserir um registro em um bloco
-void inserir_registro_bloco(ifstream& leitura, ofstream& escrita, BlocoCabecalho* cabecalho, Registro* registro, int ultimo_bloco, int index_bucket) {
-    // Lê o bloco do arquivo
-    Bloco* bloco = criarBloco();
-    leitura.read(reinterpret_cast<char*>(bloco->dados), BLOCK_SIZE - sizeof(BlocoCabecalho));
+void inserir_registro_bloco(ifstream& leitura, ofstream& escrita, Bloco* bloco, Registro* registro, int ultimo_bloco, int index_bucket) {
 
     // Insere o registro no bloco
-    int posicao = cabecalho->posicoes_registros[cabecalho->quantidade_registros];
+    int posicao = bloco->cabecalho->posicoes_registros[bloco->cabecalho->quantidade_registros];
     memcpy(&bloco->dados[posicao], &registro->id, sizeof(int));
     posicao += sizeof(int);
     memcpy(&bloco->dados[posicao], registro->title.c_str(), registro->title.size() + 1);
@@ -65,14 +74,14 @@ void inserir_registro_bloco(ifstream& leitura, ofstream& escrita, BlocoCabecalho
     posicao += registro->snippet.size() + 1;
 
     // Atualiza o cabeçalho do bloco
-    cabecalho->quantidade_registros++;
-    cabecalho->tamanho_disponivel -= registro->tamanho;
-    cabecalho->posicoes_registros[cabecalho->quantidade_registros] = posicao;
+    bloco->cabecalho->quantidade_registros++;
+    bloco->cabecalho->tamanho_disponivel -= registro->tamanho;
+    bloco->cabecalho->posicoes_registros[bloco->cabecalho->quantidade_registros] = posicao;
 
     // Criar um buffer temporário para armazenar o cabeçalho atualizado e os dados do bloco
     char buffer[BLOCK_SIZE];
     // Copiar o cabeçalho atualizado para o buffer
-    memcpy(buffer, cabecalho, sizeof(BlocoCabecalho));
+    memcpy(buffer, bloco->cabecalho, sizeof(BlocoCabecalho));
 
     // Copiar os dados do bloco para o restante do buffer
     memcpy(buffer + sizeof(BlocoCabecalho), bloco->dados, BLOCK_SIZE - sizeof(BlocoCabecalho));
@@ -81,24 +90,6 @@ void inserir_registro_bloco(ifstream& leitura, ofstream& escrita, BlocoCabecalho
     escrita.seekp(index_bucket * BLOCK_SIZE * NUM_BLOCKS + (ultimo_bloco * BLOCK_SIZE));
     // Escreve o buffer no arquivo
     escrita.write(reinterpret_cast<char*>(buffer), BLOCK_SIZE);
-
-    // Libera a memória alocada para o bloco
-    delete bloco;
-}
-
-int gerar_inteiro(string titulo)
-{
-    int chave = 0;
-    int g = 31;
-    int tam = titulo.size();
-
-    for (int i = 0; i < tam; i++)
-        chave = g * chave + (int)titulo[i];
-
-    if (chave < 0)
-        return (chave * -1) + titulo.size();
-    else
-        return chave + titulo.size();
 }
 
 // Função para inserir um registro em um bucket
@@ -106,9 +97,8 @@ void inserir_registro_bucket(Registro *registro, ifstream &entrada, ofstream &sa
 {   
     int indice_bucket = hashFunction(registro->id); // calcula o índice do bucket apropriado
     int ultimo_bloco = 0;
-
-    entrada.seekg(indice_bucket * BLOCK_SIZE * NUM_BLOCKS);
-    
+    int inicio_bucket = indice_bucket * BLOCK_SIZE * NUM_BLOCKS; //Inicio do Bucket
+    entrada.seekg(inicio_bucket);
     
     for (int i = 0; i < NUM_BLOCKS; i++)
     {
@@ -116,23 +106,19 @@ void inserir_registro_bucket(Registro *registro, ifstream &entrada, ofstream &sa
         bloco->cabecalho = new BlocoCabecalho();
         entrada.read(reinterpret_cast<char*>(bloco->cabecalho), sizeof(BlocoCabecalho));
         entrada.read(reinterpret_cast<char*>(bloco->dados), BLOCK_SIZE - sizeof(BlocoCabecalho));
-        
-        
-        
-
+    
         int tam = bloco->cabecalho->tamanho_disponivel;
         if (tam >= registro->tamanho)
         {   
+            int addr =  inicio_bucket; //Inicio do Bucket
+            addr += (ultimo_bloco * BLOCK_SIZE) + sizeof(BlocoCabecalho) + bloco->cabecalho->posicoes_registros[bloco->cabecalho->quantidade_registros];
 
-            int soma =  indice_bucket * BLOCK_SIZE * NUM_BLOCKS; //Inicio do Bucket
-            soma += (ultimo_bloco * BLOCK_SIZE) + sizeof(BlocoCabecalho) + bloco->cabecalho->posicoes_registros[bloco->cabecalho->quantidade_registros];
-
-            RegArvore *reg = new RegArvore(registro->id, soma); // adiciona o registro à árvore b+ do indice primario;
-            RegArvore *reg2 = new RegArvore(gerar_inteiro(registro->title), soma); // adiciona o registro à árvore b+ do indice secundario;
+            RegArvore *reg = new RegArvore(registro->id, addr); // adiciona o registro à árvore b+ do indice primario;
+            RegArvore *reg2 = new RegArvore(gerar_inteiro(registro->title), addr); // adiciona o registro à árvore b+ do indice secundario;
             
             btree1.insert(reg);
             btree2.insert(reg2);
-            inserir_registro_bloco(entrada, saida, bloco->cabecalho, registro, ultimo_bloco, indice_bucket); // adiciona o registro ao bloco
+            inserir_registro_bloco(entrada, saida, bloco, registro, ultimo_bloco, indice_bucket); // adiciona o registro ao bloco
             delete bloco;
             bloco = nullptr;
             return;
@@ -145,10 +131,8 @@ void inserir_registro_bucket(Registro *registro, ifstream &entrada, ofstream &sa
             cout << "Erro: Não há espaço disponível para inserir o registro" << endl;
             cout << "Registros inseridos: " << registro->id -1 << endl;
             exit(1);
-
         }
     }
-    
 }
 
 //Função para buscar um registro no arquivo de dados
