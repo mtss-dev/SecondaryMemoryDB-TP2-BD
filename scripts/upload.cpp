@@ -52,7 +52,6 @@ int main(int argc, char const *argv[])
 
     BPlusTree arvore_primaria(MAX_KEYS);
     BPlusTree arvore_secundaria(MAX_KEYS);
-    int a = 0;
     // Leitura dos registros do arquivo de entrada
     if (entry_file.is_open()) {
         string line;
@@ -60,21 +59,15 @@ int main(int argc, char const *argv[])
             Registro* r = lineToRegister(line);
             if(r != NULL){
                 inserir_registro_bucket(r,dataFileI,dataFile,arvore_primaria, arvore_secundaria);
-                a++;
             }
             delete r;
             r = nullptr;
-            // if(a == 10000){
-            //     cout << "10000 registros inseridos" << endl;
-            //     break;
-            // }
         }
     }
-    cout << a << endl;
     cout << "Arquivo de dados criado com sucesso!" << endl;
-    // arvore_primaria.serializeBPlusTree(arvore_primaria, "Arquivos/indice_primario.bin");
-    // arvore_secundaria.serializeBPlusTree(arvore_secundaria, "Arquivos/indice_secundario.bin");
-    // cout << "Indice primario e secundario criado com sucesso!" << endl;
+    arvore_primaria.serializeBPlusTree(arvore_primaria, "Arquivos/indice_primario.bin");
+    arvore_secundaria.serializeBPlusTree(arvore_secundaria, "Arquivos/indice_secundario.bin");
+    cout << "Indice primario e secundario criado com sucesso!" << endl;
     
 
     // // Fechamento do arquivo de entrada de registros

@@ -130,6 +130,9 @@ void inserir_registro_bucket(Registro *registro, ifstream &entrada, ofstream &sa
         if(i + 1 >= NUM_BLOCKS){
             cout << "Erro: Não há espaço disponível para inserir o registro" << endl;
             cout << "Registros inseridos: " << registro->id -1 << endl;
+            btree1.serializeBPlusTree(btree1, "Arquivos/indice_primario.bin");
+            btree2.serializeBPlusTree(btree2, "Arquivos/indice_secundario.bin");
+            cout << "Indice primario e secundario criado com sucesso!" << endl;
             exit(1);
         }
     }
@@ -156,7 +159,7 @@ Registro* buscar_registro(ifstream& leitura, int id_busca) {
                 // Verifica se o id do registro é igual ao id buscado
                 memcpy(&registro->id, &bloco->dados[posicao], sizeof(int));
                 if(registro->id == id_busca) {
-                    posicao = sizeof(int);
+                    posicao += sizeof(int);
                     // Deserializa o registro no bloco
                     registro->title = string((char *)&bloco->dados[posicao]);
                     posicao += registro->title.size() + 1;
