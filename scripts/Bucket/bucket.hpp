@@ -15,6 +15,15 @@ struct Bucket {
     Bloco* blocos[NUM_BLOCKS];
 };
 
+// Função para destruir um bucket
+void destruirBucket(Bucket* bucket) {
+    for (int i = 0; i < NUM_BLOCKS; i++) {
+        destruirBloco(bucket->blocos[i]);  // Desalocar o bloco
+    }
+    delete bucket;  // Desalocar o bucket em si
+    bucket = nullptr;
+}
+
 // Função para criar um bucket
 Bucket* criarBucket(ofstream &dataFile) {
     Bucket* bucket = new Bucket();
@@ -22,6 +31,7 @@ Bucket* criarBucket(ofstream &dataFile) {
     bucket->ultimo_bloco = 0;
     for (int i = 0; i < NUM_BLOCKS; i++) {
         bucket->blocos[i] = criarBloco();
+
         bucket->quatidade_blocos++;
         // Criar um buffer temporário para armazenar o cabeçalho e os dados
         char buffer[BLOCK_SIZE];
@@ -32,6 +42,7 @@ Bucket* criarBucket(ofstream &dataFile) {
         // Escrever o buffer no arquivo
         dataFile.write(buffer, BLOCK_SIZE);
     }
+    destruirBucket(bucket);
     return bucket;
 }
 

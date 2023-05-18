@@ -16,12 +16,18 @@ struct HashTable {
     Bucket* buckets[NUM_BUCKETS];
 };
 
+void destruirHashTable(HashTable* hashTable) {
+    delete hashTable;
+    hashTable = nullptr;
+}
+
 // Função para criar uma hash table
 HashTable* criarHashTable(ofstream& dataFile) {
     HashTable* hashTable = new HashTable();
     for (int i = 0; i < NUM_BUCKETS; i++) {
         hashTable->buckets[i] = criarBucket(dataFile);
     }
+    destruirHashTable(hashTable);
     return hashTable;
 }
 
@@ -32,43 +38,8 @@ int hashFunction(int id){
 }
 
 // Função para destruir a HashTable e liberar toda a memória alocada
-void destruirHashTable(HashTable* hashTable) {
-    if (hashTable == nullptr) {
-        return;
-    }
+// Função para destruir a HashTable
 
-    // Percorre os buckets da HashTable
-    for (int i = 0; i < NUM_BUCKETS; i++) {
-        Bucket* bucket = hashTable->buckets[i];
-
-        // Verifica se o bucket não é nulo
-        if (bucket != nullptr) {
-            // Percorre os blocos do bucket
-            for (int j = 0; j < NUM_BLOCKS; j++) {
-                Bloco* bloco = bucket->blocos[j];
-
-                // Verifica se o bloco não é nulo
-                if (bloco != nullptr) {
-                    // Libera a memória do cabeçalho do bloco
-                    delete bloco->cabecalho;
-                    bloco->cabecalho = nullptr;
-                    
-                    // Libera a memória do bloco
-                    delete bloco;
-                    bucket->blocos[j] = nullptr;
-                }
-            }
-
-            // Libera a memória do bucket
-            delete bucket;
-            hashTable->buckets[i] = nullptr;
-        }
-    }
-
-    // Libera a memória da HashTable
-    delete hashTable;
-    hashTable = nullptr;
-}
 
 // Função para inserir um registro em um bloco
 void inserir_registro_bloco(ifstream& leitura, ofstream& escrita, BlocoCabecalho* cabecalho, Registro* registro, int ultimo_bloco, int index_bucket) {
@@ -144,6 +115,9 @@ void inserir_registro_bucket(Registro *registro, ifstream &entrada, ofstream &sa
         Bloco* bloco = new Bloco();
         bloco->cabecalho = new BlocoCabecalho();
         entrada.read(reinterpret_cast<char*>(bloco->cabecalho), sizeof(BlocoCabecalho));
+        entrada.read(reinterpret_cast<char*>(bloco->dados), BLOCK_SIZE - sizeof(BlocoCabecalho));
+        
+        
         
 
         int tam = bloco->cabecalho->tamanho_disponivel;
@@ -160,11 +134,18 @@ void inserir_registro_bucket(Registro *registro, ifstream &entrada, ofstream &sa
             btree2.insert(reg2);
             inserir_registro_bloco(entrada, saida, bloco->cabecalho, registro, ultimo_bloco, indice_bucket); // adiciona o registro ao bloco
             delete bloco;
+            bloco = nullptr;
             return;
         }else{
-            entrada.seekg(BLOCK_SIZE - sizeof(BlocoCabecalho), std::ios_base::cur);
             ultimo_bloco++;
             delete bloco;
+            bloco = nullptr;
+        }
+        if(i + 1 >= NUM_BLOCKS){
+            cout << "Erro: Não há espaço disponível para inserir o registro" << endl;
+            cout << "Registros inseridos: " << registro->id -1 << endl;
+            exit(1);
+
         }
     }
     

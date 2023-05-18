@@ -35,12 +35,19 @@ struct Bloco {
 // Função para criar um bloco
 Bloco* criarBloco() {
     Bloco* bloco = new Bloco();
-    bloco->cabecalho = new BlocoCabecalho();
     bloco->cabecalho = criarBlocoCabecalho();
     for(int i = 0; i < BLOCK_SIZE; i++) {
         bloco->dados[i] = 0;
     }
     return bloco;
+}
+
+// Função para destruir um bloco
+void destruirBloco(Bloco* bloco) {
+    delete bloco->cabecalho;
+    bloco->cabecalho = nullptr;
+    delete bloco;
+    bloco = nullptr;
 }
 
 #endif
