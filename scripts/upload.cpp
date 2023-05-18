@@ -12,13 +12,13 @@ int main(int argc, char const *argv[])
     system("clear");
     // Registrar o tempo de início
     auto start = chrono::high_resolution_clock::now();
-    if (argc < 2) {
-        cerr << "Erro: você deve informar o nome do arquivo de entrada como argumento" << endl;
-        return 1;
-    }
+    // if (argc < 2) {
+    //     cerr << "Erro: você deve informar o nome do arquivo de entrada como argumento" << endl;
+    //     return 1;
+    // }
 
     // Nome do arquivo de entrada
-    string arquivo_csv = argv[1];
+    string arquivo_csv = "artigo.csv";
     string arquivo_dados = "Arquivos/arquivo_de_dados.bin";
 
     // Criação do arquivo de dados
@@ -31,6 +31,8 @@ int main(int argc, char const *argv[])
     // Criação da tabela hash 
     HashTable* hashTable = criarHashTable(dataFile);
     cout << "Tabela hash criada com sucesso!" << endl;
+    destruirHashTable(hashTable);
+
 
     //Abertura do arquivo de entrada
     ifstream entry_file(arquivo_csv, ios::in);
@@ -51,15 +53,15 @@ int main(int argc, char const *argv[])
     BPlusTree arvore_primaria(MAX_KEYS);
     BPlusTree arvore_secundaria(MAX_KEYS);
     // Leitura dos registros do arquivo de entrada
-    if (entry_file.is_open()) {
-        string line;
-        while (getline(entry_file, line)){
-            Registro* r = lineToRegister(line);
-            if(r != NULL){
-                inserir_registro_bucket(hashTable, r,dataFileI,dataFile,arvore_primaria, arvore_secundaria);
-            }
-        }
-    }
+    // if (entry_file.is_open()) {
+    //     string line;
+    //     while (getline(entry_file, line)){
+    //         Registro* r = lineToRegister(line);
+    //         if(r != NULL){
+    //             inserir_registro_bucket(r,dataFileI,dataFile,arvore_primaria, arvore_secundaria);
+    //         }
+    //     }
+    // }
 
     cout << "Arquivo de dados criado com sucesso!" << endl;
     arvore_primaria.serializeBPlusTree(arvore_primaria, "Arquivos/indice_primario.bin");
