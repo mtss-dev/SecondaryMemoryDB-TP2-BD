@@ -9,6 +9,23 @@
 
 using namespace std;
 
+
+//Função para converter o título em um inteiro
+int gerar_inteiro(string titulo)
+{
+    int chave = 0;
+    int g = 31;
+    int tam = titulo.size();
+
+    for (int i = 0; i < tam; i++)
+        chave = g * chave + (int)titulo[i];
+
+    if (chave < 0)
+        return (chave * -1) + titulo.size();
+    else
+        return chave + titulo.size();
+}
+
 int main(int argc, char const *argv[])
 {   
     system("clear");
@@ -35,11 +52,9 @@ int main(int argc, char const *argv[])
         return 1;
     }
 
-    // Criação da tabela hash 
-    HashTable* hashTable = criarHashTable(dataFile);
+    // Criação da tabela hash e escrita da sua estrutura no arquivo de dados
+    escreveHashTable(dataFile);
     cout << "Tabela hash criada com sucesso!" << endl;
-    //destruirHashTable(hashTable);
-
 
     //Abertura do arquivo de entrada
     ifstream entry_file(arquivo_csv, ios::in);
@@ -65,7 +80,15 @@ int main(int argc, char const *argv[])
         while (getline(entry_file, line)){
             Registro* r = lineToRegister(line);
             if(r != NULL){
-                inserir_registro_bucket(r,dataFileI,dataFile,arvore_primaria, arvore_secundaria);
+                int addr = inserir_registro_bucket(r,dataFileI,dataFile);
+                RegArvore* reg1 = new RegArvore(r->id, addr);
+                RegArvore* reg2 = new RegArvore(gerar_inteiro(r->title), addr);
+
+                arvore_primaria.insert(reg1);
+                arvore_secundaria.insert(reg2);
+
+                delete reg1;
+                delete reg2;
             }
             delete r;
             r = nullptr;

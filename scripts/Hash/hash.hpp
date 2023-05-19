@@ -11,24 +11,11 @@
 
 using namespace std;
 
-// Definição da estrutura da hash table
-struct HashTable {
-    Bucket* buckets[NUM_BUCKETS];
-};
-
-void destruirHashTable(HashTable* hashTable) {
-    delete hashTable;
-    hashTable = nullptr;
-}
-
-// Função para criar uma hash table
-HashTable* criarHashTable(ofstream& dataFile) {
-    HashTable* hashTable = new HashTable();
+// Função que cria a estrtura de uma hash table e escreve em disco
+void escreveHashTable(ofstream& dataFile) {
     for (int i = 0; i < NUM_BUCKETS; i++) {
-        hashTable->buckets[i] = criarBucket(dataFile);
+        criarBucket(dataFile);
     }
-    destruirHashTable(hashTable);
-    return hashTable;
 }
 
 //Função para calcular o hash
@@ -36,22 +23,6 @@ int hashFunction(int id){
     int index = (37 * id) % NUM_BUCKETS;
     return index;
 }
-
-int gerar_inteiro(string titulo)
-{
-    int chave = 0;
-    int g = 31;
-    int tam = titulo.size();
-
-    for (int i = 0; i < tam; i++)
-        chave = g * chave + (int)titulo[i];
-
-    if (chave < 0)
-        return (chave * -1) + titulo.size();
-    else
-        return chave + titulo.size();
-}
-
 
 // Função para inserir um registro em um bloco
 void inserir_registro_bloco(ifstream& leitura, ofstream& escrita, Bloco* bloco, Registro* registro, int ultimo_bloco, int index_bucket) {
@@ -92,12 +63,12 @@ void inserir_registro_bloco(ifstream& leitura, ofstream& escrita, Bloco* bloco, 
     escrita.write(reinterpret_cast<char*>(buffer), BLOCK_SIZE);
 }
 
-// Função para inserir um registro em um bucket
-void inserir_registro_bucket(Registro *registro, ifstream &entrada, ofstream &saida, BPlusTree &btree1, BPlusTree &btree2)
+// Função para inserir um registro em um bucket e retornar o endereço do registro no arquivo de dados
+int inserir_registro_bucket(Registro *registro, ifstream &entrada, ofstream &saida)
 {   
     int indice_bucket = hashFunction(registro->id); // calcula o índice do bucket apropriado
-    int ultimo_bloco = 0;
-    int inicio_bucket = indice_bucket * BLOCK_SIZE * NUM_BLOCKS; //Inicio do Bucket
+    int ultimo_bloco = 0; // variável para armazenar o último bloco do bucket que foi percorrido
+    int inicio_bucket = indice_bucket * BLOCK_SIZE * NUM_BLOCKS; //Inicio do Bucket no arquivo de dados
     entrada.seekg(inicio_bucket);
     
     for (int i = 0; i < NUM_BLOCKS; i++)
@@ -110,39 +81,24 @@ void inserir_registro_bucket(Registro *registro, ifstream &entrada, ofstream &sa
         int tam = bloco->cabecalho->tamanho_disponivel;
         if (tam >= registro->tamanho)
         {   
-            int addr =  inicio_bucket; //Inicio do Bucket
+            int addr =  inicio_bucket; //Calcula o endereço do bloco no arquivo de dados
             addr += (ultimo_bloco * BLOCK_SIZE) + sizeof(BlocoCabecalho) + bloco->cabecalho->posicoes_registros[bloco->cabecalho->quantidade_registros];
 
-            RegArvore *reg = new RegArvore(registro->id, addr); // adiciona o registro à árvore b+ do indice primario;
-            RegArvore *reg2 = new RegArvore(gerar_inteiro(registro->title), addr); // adiciona o registro à árvore b+ do indice secundario;
-            
-            btree1.insert(reg);
-            btree2.insert(reg2);
-            delete reg;
-            delete reg2;
-
             inserir_registro_bloco(entrada, saida, bloco, registro, ultimo_bloco, indice_bucket); // adiciona o registro ao bloco
-            delete bloco->cabecalho;
-            bloco->cabecalho = nullptr;
-            delete bloco;
-            bloco = nullptr;
-            return;
+            destruirBloco(bloco); // desaloca o bloco da memória
+            return addr;
         }else{
             ultimo_bloco++;
-            delete bloco->cabecalho;
-            bloco->cabecalho = nullptr;
-            delete bloco;
-            bloco = nullptr;
+            destruirBloco(bloco); // desaloca o bloco da memória
         }
         if(i + 1 >= NUM_BLOCKS){
             cout << "Erro: Não há espaço disponível para inserir o registro" << endl;
             cout << "Registros inseridos: " << registro->id -1 << endl;
-            btree1.serializeBPlusTree(btree1, "Arquivos/indice_primario.bin");
-            btree2.serializeBPlusTree(btree2, "Arquivos/indice_secundario.bin");
-            cout << "Indice primario e secundario criado com sucesso!" << endl;
+            cout << "Não foi possivel gerar os arquivos de indice" << endl;
             exit(1);
         }
     }
+    return -1;
 }
 
 //Função para buscar um registro no arquivo de dados

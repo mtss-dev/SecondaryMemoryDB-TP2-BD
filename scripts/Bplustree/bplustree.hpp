@@ -319,6 +319,7 @@ int range_search(int start, int end, RegArvore* result_data, int arr_length) {
         }
     }
 
+    // Função para inserir um item em um nó folha
     void insert(RegArvore* data) {
         RegArvore reg(data->chave, data->valor);
 
@@ -399,28 +400,6 @@ int range_search(int start, int end, RegArvore* result_data, int arr_length) {
         }
     }
 
-    // Função para imprimir uma árvore B+
-    void bpt_print(){
-        print(this->root);
-    }
-
-    // Função para imprimir os nós de uma árvore B+ 
-    void print(Node<RegArvore>* cursor) {
-        if (cursor != NULL) {
-            for (int i = 0; i < cursor->size; ++i) {
-                cout  << cursor->item[i].chave << " ";
-                cout  <<cursor->item[i].valor << " ";
-            }
-            cout << "\n";
-
-            if (!cursor->is_leaf) {
-                for (int i = 0; i < cursor->size + 1; ++i) {
-                    print(cursor->children[i]);
-                }
-            }
-        }
-    }
-
     // Função para serializar uma árvore B+ em um arquivo binário
     void serializeBPlusTree(const BPlusTree& tree, const string& filename) {
         ofstream file(filename, ios::binary | ios::out);
@@ -458,37 +437,39 @@ int range_search(int start, int end, RegArvore* result_data, int arr_length) {
         }
     }
 
-BPlusTree deserializeBPlusTree(const string& filename) {
-    ifstream file(filename, ios::binary | ios::in);
-    if (!file) {
-        cerr << "Error opening file for deserialization: " << filename << endl;
-        return BPlusTree(0);  // Retornar uma árvore B+ vazia
-    }
+    // Função para desserializar uma árvore B+ de um arquivo binário
+    BPlusTree deserializeBPlusTree(const string& filename) {
+        ifstream file(filename, ios::binary | ios::in);
+        if (!file) {
+            cerr << "Error opening file for deserialization: " << filename << endl;
+            return BPlusTree(0);  // Retornar uma árvore B+ vazia
+        }
 
-    // Ler o grau da árvore do arquivo
-    size_t degree;
-    if (!file.read(reinterpret_cast<char*>(&degree), sizeof(degree))) {
-        cerr << "Error reading degree from file: " << filename << endl;
+        // Ler o grau da árvore do arquivo
+        size_t degree;
+        if (!file.read(reinterpret_cast<char*>(&degree), sizeof(degree))) {
+            cerr << "Error reading degree from file: " << filename << endl;
+            file.close();
+            return BPlusTree(0);  // Retornar uma árvore B+ vazia
+        }
+
+        // Criar uma nova árvore B+ com o grau fornecido
+        BPlusTree tree(degree);
+
+        // Desserializar a árvore recursivamente, começando pelo nó raiz
+        tree.root = deserializeNode(file, nullptr, degree);
+        if (!tree.root) {
+            cerr << "Error deserializing root node from file: " << filename << endl;
+            file.close();
+            return BPlusTree(0);  // Retornar uma árvore B+ vazia
+        }
+
         file.close();
-        return BPlusTree(0);  // Retornar uma árvore B+ vazia
+
+        return tree;
     }
 
-    // Criar uma nova árvore B+ com o grau fornecido
-    BPlusTree tree(degree);
-
-    // Desserializar a árvore recursivamente, começando pelo nó raiz
-    tree.root = deserializeNode(file, nullptr, degree);
-    if (!tree.root) {
-        cerr << "Error deserializing root node from file: " << filename << endl;
-        file.close();
-        return BPlusTree(0);  // Retornar uma árvore B+ vazia
-    }
-
-    file.close();
-
-    return tree;
-}
-
+    // Função para destruir um nó e seus filhos recursivamente
     void destroyNode(Node<RegArvore>* node) {
         if (node) {
             if (!node->is_leaf) {
@@ -502,6 +483,7 @@ BPlusTree deserializeBPlusTree(const string& filename) {
         }
     }
 
+    // Função recursiva para desserializar um nó e seus filhos
     Node<RegArvore>* deserializeNode(ifstream& file, Node<RegArvore>* parent, size_t degree) {
         // Ler as informações do nó do arquivo
         bool is_leaf;
@@ -545,6 +527,8 @@ BPlusTree deserializeBPlusTree(const string& filename) {
 
 };
 
+//Outras funções auxiliares
+
 // Função para contar o número de nós de uma árvore B+
 int countNodes(Node<RegArvore>* node) {
     if (node == nullptr) {
@@ -562,6 +546,7 @@ int countNodes(Node<RegArvore>* node) {
     return count;
 }
 
+// Função para buscar um registro em uma árvore B+ e retornar o registro (ou nullptr se não encontrado)
 Registro* buscar_registro_bpt(string index_filename, ifstream& dataFile, int id_busca) {
     BPlusTree bpt = bpt.deserializeBPlusTree(index_filename);
     Node<RegArvore>* node = bpt.search(id_busca);
@@ -607,12 +592,9 @@ Registro* buscar_registro_bpt(string index_filename, ifstream& dataFile, int id_
             return registro; // Retorna o registro encontrado
         }
     }
-    delete node;
+    delete node; // Libera a memória alocada para o nó
     bpt.destroyTree(bpt.getroot()); // Libera a memória alocada para a árvore B+ (e seus nós)   
     return registro;
 }
-
-
-
 
 #endif //BPTREE_BPTREE_H

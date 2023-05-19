@@ -46,3 +46,4 @@
 *.exe
 
 /scripts/Arquivos/*.bin
+/scripts/Arquivos/*.txt

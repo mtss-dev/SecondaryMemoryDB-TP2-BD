@@ -45,9 +45,7 @@ Bloco* criarBloco() {
 // Função para destruir um bloco
 void destruirBloco(Bloco* bloco) {
     delete bloco->cabecalho;
-    bloco->cabecalho = nullptr;
     delete bloco;
-    bloco = nullptr;
 }
 
 #endif
