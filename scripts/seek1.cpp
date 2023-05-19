@@ -26,6 +26,7 @@ int main(int argc, char const *argv[])
         cout << "Registro não encontrado!" << endl;
     }
 
+    delete registro_busca;
     //Fechamento do arquivo de dados organizado por hashing
     dataFileI.close();
 

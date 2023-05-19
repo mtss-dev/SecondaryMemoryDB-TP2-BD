@@ -4,21 +4,28 @@
 #include "Hash/hash.hpp"
 #include "Bplustree/bplustree.hpp"
 #include <chrono>
+#include <unistd.h>
+#include <sys/resource.h>
 
 using namespace std;
 
 int main(int argc, char const *argv[])
 {   
     system("clear");
-    // Registrar o tempo de início
-    auto start = chrono::high_resolution_clock::now();
-    // if (argc < 2) {
-    //     cerr << "Erro: você deve informar o nome do arquivo de entrada como argumento" << endl;
-    //     return 1;
-    // }
+
+    // Definir a estrutura rusage para armazenar as informações sobre o uso de recursos
+    struct rusage usage;
+
+    // Iniciar o cronômetro
+    auto start = std::chrono::steady_clock::now();
+
+    if (argc < 2) {
+        cerr << "Erro: você deve informar o nome do arquivo de entrada como argumento" << endl;
+        return 1;
+    }
 
     // Nome do arquivo de entrada
-    string arquivo_csv = "artigo.csv";
+    string arquivo_csv = argv[1];
     string arquivo_dados = "Arquivos/arquivo_de_dados.bin";
 
     // Criação do arquivo de dados
@@ -68,6 +75,9 @@ int main(int argc, char const *argv[])
     arvore_primaria.serializeBPlusTree(arvore_primaria, "Arquivos/indice_primario.bin");
     arvore_secundaria.serializeBPlusTree(arvore_secundaria, "Arquivos/indice_secundario.bin");
     cout << "Indice primario e secundario criado com sucesso!" << endl;
+
+    arvore_primaria.destroyTree(arvore_primaria.getroot());
+    arvore_secundaria.destroyTree(arvore_secundaria.getroot());
     
 
     // // Fechamento do arquivo de entrada de registros
@@ -77,19 +87,19 @@ int main(int argc, char const *argv[])
     // Fechamento do arquivo de dados (Para escrita e leitura)
     dataFile.close();
 
-    // Registrar o tempo de término
-    auto end = chrono::high_resolution_clock::now();
+    // Parar o cronômetro
+    auto end = std::chrono::steady_clock::now();
 
-    // Calcular a duração em segundos
-    chrono::duration<double> duration = end - start;
-    double seconds = duration.count();
+    // Obter informações sobre o uso de recursos
+    getrusage(RUSAGE_SELF, &usage);
 
-    // Calcular minutos e segundos
-    int minutes = static_cast<int>(seconds) / 60;
-    int remainingSeconds = static_cast<int>(seconds) % 60;
+    // Calcular o tempo de CPU em segundos
+    double cpuTime = std::chrono::duration<double>(end - start).count();
 
-    // Imprimir o tempo de execução
-    cout << "Tempo de execução: " << minutes << " minuto(s) e " << remainingSeconds << " segundos" << endl;
+    // Exibir informações sobre o uso de recursos
+    std::cout << "Tempo de CPU: " << cpuTime << " segundos" << std::endl;
+    std::cout << "Uso máximo de memória: " << usage.ru_maxrss << " kilobytes" << std::endl;
+
 
     return 0;
 }

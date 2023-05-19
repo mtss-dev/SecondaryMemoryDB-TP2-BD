@@ -118,12 +118,19 @@ void inserir_registro_bucket(Registro *registro, ifstream &entrada, ofstream &sa
             
             btree1.insert(reg);
             btree2.insert(reg2);
+            delete reg;
+            delete reg2;
+
             inserir_registro_bloco(entrada, saida, bloco, registro, ultimo_bloco, indice_bucket); // adiciona o registro ao bloco
+            delete bloco->cabecalho;
+            bloco->cabecalho = nullptr;
             delete bloco;
             bloco = nullptr;
             return;
         }else{
             ultimo_bloco++;
+            delete bloco->cabecalho;
+            bloco->cabecalho = nullptr;
             delete bloco;
             bloco = nullptr;
         }
