@@ -1,7 +1,6 @@
 #ifndef HASH_HPP
 #define HASH_HPP
 
-#include "../Bplustree/bplustree.hpp"
 #include "../Registro/registro.hpp"
 #include "../Constantes/constantes.hpp"
 #include "../Bloco/bloco.hpp"
