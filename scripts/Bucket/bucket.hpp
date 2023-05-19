@@ -23,7 +23,7 @@ void destruirBucket(Bucket* bucket) {
     delete bucket;  // Desalocar o bucket em si
 }
 
-// Função para criar um bucket, criar os blocos escrever no arquivo de dados, em seguida desaloca o bucket e os blocos da memória principal
+// Função para criar um bucket, criar os blocos e escrever no arquivo de dados, em seguida desaloca o bucket e os blocos da memória principal
 void criarBucket(ofstream &dataFile) {
     Bucket* bucket = new Bucket();
     bucket->quatidade_blocos = 0;

@@ -8,6 +8,22 @@
 
 using namespace std;
 
+//Função para converter o título em um inteiro
+int gerar_inteiro(string titulo)
+{
+    int chave = 0;
+    int g = 31;
+    int tam = titulo.size();
+
+    for (int i = 0; i < tam; i++)
+        chave = g * chave + (int)titulo[i];
+
+    if (chave < 0)
+        return (chave * -1) + titulo.size();
+    else
+        return chave + titulo.size();
+}
+
 struct RegArvore {
     int chave;
     int valor;
