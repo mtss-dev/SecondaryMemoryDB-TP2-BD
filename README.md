@@ -39,4 +39,53 @@ Caso não possua o arquivo de entrada, baixe-o [aqui](https://drive.google.com/f
     string title = "A new approach to the maximum flow problem";
 ```
 
-Também foi notado uma diferença quando se captura o campo título no excel ou num editor de texto qualquer a respeito dos caracteres unicode, por exemplo, o título do seguinte artigo foi extraído do excel: "0.18 ��m CMOS power amplifier for ultra-wideband (UWB) system", note que os caracteres unicode viraram "�", porém quando o título é extraído de um editor de texto qualquer, o título fica da seguinte forma: "0.18 μm CMOS power amplifier for ultra-wideband (UWB) system", note que o caractere unicode foi mantido. Portanto, para que o script funcione corretamente, certifique-se de que o título do artigo esteja no formato unicode.
+Também foi notado uma diferença quando se captura o campo título no excel ou num editor de texto qualquer a respeito dos caracteres unicode, por exemplo, o título do seguinte artigo foi extraído do excel:
+
+```
+    0.18 ��m CMOS power amplifier for ultra-wideband (UWB) system
+```
+
+Note que os caracteres unicode viraram "�", porém quando o título é extraído de um editor de texto qualquer, o título fica da seguinte forma:
+
+```
+    0.18 μm CMOS power amplifier for ultra-wideband (UWB) system
+```
+
+Note que o caractere unicode foi mantido. Portanto, para que o script funcione corretamente, certifique-se de que o título do artigo esteja no formato unicode.
+
+## Execução com o Docker
+
+Para executar o trabalho, foi criado um dockerfile que contém todas as dependências necessárias para a execução do trabalho, para executar o dockerfile, basta executar os seguintes comandos:
+
+```sh
+    docker build -t tp2_bd .
+    docker run --rm -v /home/matheus/Documentos/TP2-BD:/app/output tp2-bd
+```
+
+Onde `/home/matheus/Documentos/TP2-BD` é o caminho para a pasta do trabalho no seu computador, e `tp2-bd` é o nome da imagem docker que será criada. Para saber onde está a pasta do trabalho no seu computador, basta executar o comando `pwd` dentro da pasta do trabalho e substituir o caminho `/home/matheus/Documentos/TP2-BD` pelo caminho que foi retornado.
+
+ Certifique-se de que o arquivo de entrada `artigos.csv` está na pasta [scripts](scripts/), caso contrário o script do dockerfile não irá funcionar!
+
+O parâmetro `-t` é utilizado para dar um nome a imagem docker. O parâmetro `--rm` é utilizado para que o container seja removido após a execução do trabalho. O parâmetro `-v` é utilizado para montar um volume, ou seja, para que o docker tenha acesso aos arquivos do seu computador. 
+
+Após a execução do dockerfile, a saída do terminal ficará salva em um arquivo chamado `output.txt`, que estará na pasta do trabalho no seu computador. O arquivo `output.txt` conterá o resultado da execução de todos os scripts, ou seja, o resultado da execução do script [upload.cpp](scripts/upload.cpp), [findrec.cpp](scripts/findrec.cpp), [seek1.cpp](scripts/seek1.cpp) e [seek2.cpp](scripts/seek2.cpp).
+
+## Execução normal
+
+Caso não queira executar o trabalho com o docker, basta executar os seguintes comandos:
+
+```sh
+    g++ upload.cpp -o upload && ./upload artigos.csv
+    g++ findrec.cpp -o findrec && ./findrec <id>
+    g++ seek1.cpp -o seek1 && ./seek1 <id>
+    g++ seek2.cpp -o seek2 && ./seek2 "<título>"
+```
+
+Onde `<id>` é o id do artigo que deseja buscar e `"<título>"` é o título do artigo que deseja buscar. Note que o título deve estar entre aspas duplas.
+
+## Autores 
+
+- [Matheus Santos](https://github.com/mtss-dev) --- Email para contato: matheus.silva@icomp.ufam.edu.br
+
+- [Vinicius Luiz](https://github.com/VinnyHardth) --- Email para contato: vinicius.fonseca@icomp.ufam.edu.br
+
