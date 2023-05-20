@@ -74,10 +74,6 @@ public:
         this->degree = _degree;
     }
 
-    // ~BPlusTree() {
-    //     destroyTree(root);
-    // }
-
     void destroyTree(Node<RegArvore>* node) {
         if (node == nullptr) {
             return;

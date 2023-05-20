@@ -5,7 +5,6 @@
 #include "../Constantes/constantes.hpp"
 #include "../Bloco/bloco.hpp"
 #include "../Bucket/bucket.hpp"
-#include "../Registro/registro.hpp"
 #include <iostream>
 
 using namespace std;
