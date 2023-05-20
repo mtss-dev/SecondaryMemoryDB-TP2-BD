@@ -58,6 +58,22 @@ public:
         this->degree = _degree;
     }
 
+    void destroyTree(Node<RegArvore>* node) {
+        if (node == nullptr) {
+            return;
+        }
+
+        if (!node->is_leaf) {
+            for (size_t i = 0; i < node->size + 1; i++) {
+                destroyTree(node->children[i]);
+            }
+        }
+
+        delete[] node->item;
+        delete[] node->children;
+        delete node;
+    }
+
     Node<RegArvore>* getroot(){
         return this->root;
     }
