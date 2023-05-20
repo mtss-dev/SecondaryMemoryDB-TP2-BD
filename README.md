@@ -15,13 +15,13 @@ Na pasta [documentation](documentation/) conterá o arquivo:
 
 Na pasta [scripts](scripts/) conterá todos os scripts utilizados para a elaboração do trabalho, segue abaixo uma breve descrição sobre cada script:
 
-- [upload.cpp](scripts/upload.cpp): realiza a leitura do arquivo de entrada e armazena os dados em um arquivo binário organizado por hash, também constrói um arquivo de índice primário e secundário, que serão utilizado para a realização das consultas. A execução deste script é realizada através do comando: `g++ upload.cpp -o upload && ./upload <arquivo de entrada>`. Os arquivos gerados serão: `arquivo_de_dados.bin`, `indice_primario.bin` e `indice_secundario.bin`, que estarão na pasta [Arquivos](Arquivos/).
+- [upload.cpp](scripts/upload.cpp): realiza a leitura do arquivo de entrada e armazena os dados em um arquivo binário organizado por hash, também constrói um arquivo de índice primário e secundário, que serão utilizado para a realização das consultas. A execução deste script é realizada através do comando: `g++ upload.cpp -o upload && ./upload <arquivo de entrada>`. Os arquivos gerados serão: `arquivo_de_dados.bin`, `indice_primario.bin` e `indice_secundario.bin`, que estarão na pasta [Arquivos](script/Arquivos/).
 
-- [findrec.cpp](scripts/findrec.cpp): realiza a busca por um registro através do id de um artigo no arquivo organizado por hash  [arquivo_de_dados.bin](Arquivos/arquivo_de_dados.bin), a execução deste script é realizada através do comando: `g++ findrec.cpp -o findrec && ./findrec <id>`. O resultado da busca será impresso no terminal.
+- [findrec.cpp](scripts/findrec.cpp): realiza a busca por um registro através do id de um artigo no arquivo organizado por hash  [arquivo_de_dados.bin](script/Arquivos/), a execução deste script é realizada através do comando: `g++ findrec.cpp -o findrec && ./findrec <id>`. O resultado da busca será impresso no terminal.
 
-- [seek1.cpp](scripts/seek1.cpp): realiza a busca por um registro através do id de um artigo no arquivo [indice_primario.bin](Arquivos/indice_primario.bin) que é uma árvore B+, a execução deste script é realizada através do comando: `g++ seek1.cpp -o seek1 && ./seek1 <id>`. O resultado da busca será impresso no terminal.
+- [seek1.cpp](scripts/seek1.cpp): realiza a busca por um registro através do id de um artigo no arquivo [indice_primario.bin](script/Arquivos/) que é uma árvore B+, a execução deste script é realizada através do comando: `g++ seek1.cpp -o seek1 && ./seek1 <id>`. O resultado da busca será impresso no terminal.
 
-- [seek2.cpp](scripts/seek2.cpp): realiza a busca por um registro através do título de um artigo no arquivo [indice_secundario.bin](Arquivos/indice_secundario.bin) que é uma árvore B+, a execução deste script é realizada através do comando: `g++ seek2.cpp -o seek2 && ./seek2 "<título>"`. O resultado da busca será impresso no terminal.
+- [seek2.cpp](scripts/seek2.cpp): realiza a busca por um registro através do título de um artigo no arquivo [indice_secundario.bin](script/Arquivos/) que é uma árvore B+, a execução deste script é realizada através do comando: `g++ seek2.cpp -o seek2 && ./seek2 "<título>"`. O resultado da busca será impresso no terminal.
 
 ## Avisos Importantes
 
