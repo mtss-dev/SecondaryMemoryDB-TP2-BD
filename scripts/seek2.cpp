@@ -8,7 +8,6 @@ using namespace std;
 
 int main(int argc, char const *argv[])
 {   
-    system("clear");
     if (argc < 2) {
         std::cout << "Uso: ./seek2 <titulo>" << std::endl;
         return 1;
@@ -20,10 +19,12 @@ int main(int argc, char const *argv[])
 
     Registro* registro_busca = buscar_registro_bpt(indice_primario,dataFileI, gerar_inteiro(remove_unicode(argv[1])));
     if(registro_busca != NULL) {
-        cout << "\nCampos do Registros:" << endl;
+        cout << "\nRegistro com titulo " << argv[1] << " encontrado! " << endl;
+        cout << "Campos do Registros:" << endl;
         imprimeRegistro(*registro_busca);
+        cout << endl;
     } else {
-        cout << "Registro não encontrado!" << endl;
+        cout << "Registro com titulo " << argv[1] << " não encontrado!" << endl;
     }
 
     delete registro_busca;  

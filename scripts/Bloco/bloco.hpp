@@ -28,20 +28,24 @@ BlocoCabecalho* criarBlocoCabecalho() {
 
 // Definição da estrutura do bloco
 struct Bloco {
-    int id_block;
     BlocoCabecalho* cabecalho;
     unsigned char dados[BLOCK_SIZE];
 };
 
 // Função para criar um bloco
-Bloco* criarBloco(int id_block) {
+Bloco* criarBloco() {
     Bloco* bloco = new Bloco();
     bloco->cabecalho = criarBlocoCabecalho();
-    bloco->id_block = id_block;
     for(int i = 0; i < BLOCK_SIZE; i++) {
         bloco->dados[i] = 0;
     }
     return bloco;
+}
+
+// Função para destruir um bloco
+void destruirBloco(Bloco* bloco) {
+    delete bloco->cabecalho;
+    delete bloco;
 }
 
 #endif

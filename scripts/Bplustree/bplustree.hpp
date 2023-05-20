@@ -8,6 +8,22 @@
 
 using namespace std;
 
+//Função para converter o título em um inteiro
+int gerar_inteiro(string titulo)
+{
+    int chave = 0;
+    int g = 31;
+    int tam = titulo.size();
+
+    for (int i = 0; i < tam; i++)
+        chave = g * chave + (int)titulo[i];
+
+    if (chave < 0)
+        return (chave * -1) + titulo.size();
+    else
+        return chave + titulo.size();
+}
+
 struct RegArvore {
     int chave;
     int valor;
@@ -315,6 +331,7 @@ int range_search(int start, int end, RegArvore* result_data, int arr_length) {
         }
     }
 
+    // Função para inserir um item em um nó folha
     void insert(RegArvore* data) {
         RegArvore reg(data->chave, data->valor);
 
@@ -395,28 +412,6 @@ int range_search(int start, int end, RegArvore* result_data, int arr_length) {
         }
     }
 
-    // Função para imprimir uma árvore B+
-    void bpt_print(){
-        print(this->root);
-    }
-
-    // Função para imprimir os nós de uma árvore B+ 
-    void print(Node<RegArvore>* cursor) {
-        if (cursor != NULL) {
-            for (int i = 0; i < cursor->size; ++i) {
-                cout  << cursor->item[i].chave << " ";
-                cout  <<cursor->item[i].valor << " ";
-            }
-            cout << "\n";
-
-            if (!cursor->is_leaf) {
-                for (int i = 0; i < cursor->size + 1; ++i) {
-                    print(cursor->children[i]);
-                }
-            }
-        }
-    }
-
     // Função para serializar uma árvore B+ em um arquivo binário
     void serializeBPlusTree(const BPlusTree& tree, const string& filename) {
         ofstream file(filename, ios::binary | ios::out);
@@ -464,26 +459,52 @@ int range_search(int start, int end, RegArvore* result_data, int arr_length) {
 
         // Ler o grau da árvore do arquivo
         size_t degree;
-        file.read(reinterpret_cast<char*>(&degree), sizeof(degree));
+        if (!file.read(reinterpret_cast<char*>(&degree), sizeof(degree))) {
+            cerr << "Error reading degree from file: " << filename << endl;
+            file.close();
+            return BPlusTree(0);  // Retornar uma árvore B+ vazia
+        }
 
         // Criar uma nova árvore B+ com o grau fornecido
         BPlusTree tree(degree);
 
         // Desserializar a árvore recursivamente, começando pelo nó raiz
         tree.root = deserializeNode(file, nullptr, degree);
+        if (!tree.root) {
+            cerr << "Error deserializing root node from file: " << filename << endl;
+            file.close();
+            return BPlusTree(0);  // Retornar uma árvore B+ vazia
+        }
 
         file.close();
 
         return tree;
     }
-    
+
+    // Função para destruir um nó e seus filhos recursivamente
+    void destroyNode(Node<RegArvore>* node) {
+        if (node) {
+            if (!node->is_leaf) {
+                for (size_t i = 0; i <= node->size; ++i) {
+                    destroyNode(node->children[i]);
+                }
+                delete[] node->children;
+            }
+            delete[] node->item;
+            delete node;
+        }
+    }
+
     // Função recursiva para desserializar um nó e seus filhos
     Node<RegArvore>* deserializeNode(ifstream& file, Node<RegArvore>* parent, size_t degree) {
         // Ler as informações do nó do arquivo
         bool is_leaf;
         size_t size;
-        file.read(reinterpret_cast<char*>(&is_leaf), sizeof(is_leaf));
-        file.read(reinterpret_cast<char*>(&size), sizeof(size));
+        if (!file.read(reinterpret_cast<char*>(&is_leaf), sizeof(is_leaf)) ||
+            !file.read(reinterpret_cast<char*>(&size), sizeof(size))) {
+            cerr << "Error reading node information from file." << endl;
+            return nullptr;
+        }
 
         // Criar um novo nó
         auto* node = new Node<RegArvore>(degree);
@@ -493,20 +514,32 @@ int range_search(int start, int end, RegArvore* result_data, int arr_length) {
 
         // Ler os itens do nó do arquivo
         node->item = new RegArvore[degree - 1];
-        file.read(reinterpret_cast<char*>(node->item), sizeof(RegArvore) * (degree - 1));
+        if (!file.read(reinterpret_cast<char*>(node->item), sizeof(RegArvore) * (degree - 1))) {
+            cerr << "Error reading node items from file." << endl;
+            delete[] node->item;
+            delete node;
+            return nullptr;
+        }
 
-        if (!is_leaf)
-        {
-        // Desserializar os nós filhos recursivamente
-        node->children = new Node<RegArvore>*[degree];
-        for (size_t i = 0; i <= size; ++i) {
-            node->children[i] = deserializeNode(file, node, degree);
+        if (!is_leaf) {
+            // Desserializar os nós filhos recursivamente
+            node->children = new Node<RegArvore>*[degree];
+            for (size_t i = 0; i <= size; ++i) {
+                node->children[i] = deserializeNode(file, node, degree);
+                if (!node->children[i]) {
+                    cerr << "Error deserializing child node from file." << endl;
+                    destroyNode(node); // Liberar a memória alocada
+                    return nullptr;
+                }
+            }
         }
-        }
+
         return node;
     }
 
 };
+
+//Outras funções auxiliares
 
 // Função para contar o número de nós de uma árvore B+
 int countNodes(Node<RegArvore>* node) {
@@ -525,56 +558,55 @@ int countNodes(Node<RegArvore>* node) {
     return count;
 }
 
-// Função para buscar um registro em uma árvore B+
+// Função para buscar um registro em uma árvore B+ e retornar o registro (ou nullptr se não encontrado)
 Registro* buscar_registro_bpt(string index_filename, ifstream& dataFile, int id_busca) {
-    BPlusTree bpt(MAX_KEYS);
-
-    bpt = bpt.deserializeBPlusTree(index_filename);
-
-    Registro* registro = new Registro();
+    BPlusTree bpt = bpt.deserializeBPlusTree(index_filename);
     Node<RegArvore>* node = bpt.search(id_busca);
+    Registro* registro = nullptr;
 
-    RegArvore* reg = new RegArvore(-1, -1); // Inicializa com valores inválidos
-    
-    if(node != nullptr) {
+    if (node != nullptr) {
+        RegArvore* reg = nullptr;
+
         // Busca o registro no nó
         for (int i = 0; i < node->size; i++) {
             // Se encontrou o registro
             if (node->item[i].chave == id_busca) {
-                reg->chave = node->item[i].chave;
-                reg->valor = node->item[i].valor;
+                reg = &node->item[i];
                 break;
             }
         }
 
         // Se não encontrou o registro
-        if(reg->chave == -1) {
-            return NULL;
-        }else{
-            dataFile.seekg(reg->valor);
-            dataFile.read(reinterpret_cast<char*>(&registro->id), sizeof(int));
-
-            // Deserializa os demais campos do registro
-            getline(dataFile, registro->title, '\0');
-            dataFile.read(reinterpret_cast<char*>(&registro->year), sizeof(int));
-            getline(dataFile, registro->authors, '\0');
-            dataFile.read(reinterpret_cast<char*>(&registro->citations), sizeof(int));
-            getline(dataFile, registro->update, '\0');
-            getline(dataFile, registro->snippet, '\0');
-
-            
-            registro->tamanho = sizeof(int) + registro->title.size() + 1 +
-                                sizeof(int) + registro->authors.size() + 1 +
-                                sizeof(int) + registro->update.size() + 1 +
-                                registro->snippet.size() + 1;
-
-            int totalNodes = countNodes(bpt.getroot());
-            cout << "Quantidade total de blocos do arquivo de índice primário: " << totalNodes << endl;
-            return registro;
+        if (reg == nullptr) {
+            bpt.destroyTree(bpt.getroot()); // Libera a memória alocada para a árvore B+ (e seus nós)
+            return nullptr;
         }
-    }else{
-        return NULL;
+
+        registro = new Registro();
+        dataFile.seekg(reg->valor);
+        dataFile.read(reinterpret_cast<char*>(&registro->id), sizeof(int));
+
+        // Deserializa os demais campos do registro
+        getline(dataFile, registro->title, '\0');
+        dataFile.read(reinterpret_cast<char*>(&registro->year), sizeof(int));
+        getline(dataFile, registro->authors, '\0');
+        dataFile.read(reinterpret_cast<char*>(&registro->citations), sizeof(int));
+        getline(dataFile, registro->update, '\0');
+        getline(dataFile, registro->snippet, '\0');
+
+        registro->tamanho = sizeof(int) + registro->title.size() + 1 +
+                            sizeof(int) + registro->authors.size() + 1 +
+                            sizeof(int) + registro->update.size() + 1 +
+                            registro->snippet.size() + 1;
+
+        int totalNodes = countNodes(bpt.getroot());
+        cout << "Quantidade total de blocos do arquivo de índice primário: " << totalNodes << endl;
+
+        bpt.destroyTree(bpt.getroot()); // Libera a memória alocada para a árvore B+ (e seus nós)
     }
+
+    delete node; // Libera a memória alocada para o nó
+    return registro; // Retorna o registro encontrado ou nullptr se não encontrado
 }
 
 #endif //BPTREE_BPTREE_H

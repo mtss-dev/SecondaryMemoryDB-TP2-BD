@@ -1,7 +1,6 @@
 #ifndef HASH_HPP
 #define HASH_HPP
 
-#include "../Bplustree/bplustree.hpp"
 #include "../Registro/registro.hpp"
 #include "../Constantes/constantes.hpp"
 #include "../Bloco/bloco.hpp"
@@ -10,18 +9,11 @@
 
 using namespace std;
 
-// Definição da estrutura da hash table
-struct HashTable {
-    Bucket* buckets[NUM_BUCKETS];
-};
-
-// Função para criar uma hash table
-HashTable* criarHashTable(ofstream& dataFile) {
-    HashTable* hashTable = new HashTable();
+// Função que cria a estrtura de uma hash table e escreve em disco
+void escreveHashTable(ofstream& dataFile) {
     for (int i = 0; i < NUM_BUCKETS; i++) {
-        hashTable->buckets[i] = criarBucket(dataFile);
+        criarBucket(dataFile);
     }
-    return hashTable;
 }
 
 //Função para calcular o hash
@@ -31,14 +23,10 @@ int hashFunction(int id){
 }
 
 // Função para inserir um registro em um bloco
-void inserir_registro_bloco(ifstream& leitura, ofstream& escrita, BlocoCabecalho* cabecalho, Registro* registro, int ultimo_bloco, int index_bucket) {
-    // Lê o bloco do arquivo
-    Bloco* bloco = criarBloco(ultimo_bloco);
-    leitura.seekg(index_bucket * BLOCK_SIZE * NUM_BLOCKS + (ultimo_bloco * BLOCK_SIZE) + sizeof(BlocoCabecalho));
-    leitura.read(reinterpret_cast<char*>(bloco->dados), BLOCK_SIZE - sizeof(BlocoCabecalho));
+void inserir_registro_bloco(ifstream& leitura, ofstream& escrita, Bloco* bloco, Registro* registro, int ultimo_bloco, int index_bucket) {
 
     // Insere o registro no bloco
-    int posicao = cabecalho->posicoes_registros[cabecalho->quantidade_registros];
+    int posicao = bloco->cabecalho->posicoes_registros[bloco->cabecalho->quantidade_registros];
     memcpy(&bloco->dados[posicao], &registro->id, sizeof(int));
     posicao += sizeof(int);
     memcpy(&bloco->dados[posicao], registro->title.c_str(), registro->title.size() + 1);
@@ -55,14 +43,14 @@ void inserir_registro_bloco(ifstream& leitura, ofstream& escrita, BlocoCabecalho
     posicao += registro->snippet.size() + 1;
 
     // Atualiza o cabeçalho do bloco
-    cabecalho->quantidade_registros++;
-    cabecalho->tamanho_disponivel -= registro->tamanho;
-    cabecalho->posicoes_registros[cabecalho->quantidade_registros] = posicao;
+    bloco->cabecalho->quantidade_registros++;
+    bloco->cabecalho->tamanho_disponivel -= registro->tamanho;
+    bloco->cabecalho->posicoes_registros[bloco->cabecalho->quantidade_registros] = posicao;
 
     // Criar um buffer temporário para armazenar o cabeçalho atualizado e os dados do bloco
     char buffer[BLOCK_SIZE];
     // Copiar o cabeçalho atualizado para o buffer
-    memcpy(buffer, cabecalho, sizeof(BlocoCabecalho));
+    memcpy(buffer, bloco->cabecalho, sizeof(BlocoCabecalho));
 
     // Copiar os dados do bloco para o restante do buffer
     memcpy(buffer + sizeof(BlocoCabecalho), bloco->dados, BLOCK_SIZE - sizeof(BlocoCabecalho));
@@ -71,60 +59,51 @@ void inserir_registro_bloco(ifstream& leitura, ofstream& escrita, BlocoCabecalho
     escrita.seekp(index_bucket * BLOCK_SIZE * NUM_BLOCKS + (ultimo_bloco * BLOCK_SIZE));
     // Escreve o buffer no arquivo
     escrita.write(reinterpret_cast<char*>(buffer), BLOCK_SIZE);
-
-    // Libera a memória alocada para o bloco
-    delete bloco;
 }
 
-int gerar_inteiro(string titulo)
-{
-    int chave = 0;
-    int g = 31;
-    int tam = titulo.size();
-
-    for (int i = 0; i < tam; i++)
-        chave = g * chave + (int)titulo[i];
-
-    if (chave < 0)
-        return (chave * -1) + titulo.size();
-    else
-        return chave + titulo.size();
-}
-
-// Função para inserir um registro em um bucket
-void inserir_registro_bucket(HashTable *hashtable, Registro *registro, ifstream &entrada, ofstream &saida, BPlusTree &btree1, BPlusTree &btree2)
-{
+// Função para inserir um registro em um bucket e retornar o endereço do registro no arquivo de dados
+int inserir_registro_bucket(Registro *registro, ifstream &entrada, ofstream &saida)
+{   
     int indice_bucket = hashFunction(registro->id); // calcula o índice do bucket apropriado
-    Bucket *bucket = hashtable->buckets[indice_bucket];
-
-    for (Bloco *bloco : bucket->blocos)
+    int ultimo_bloco = 0; // variável para armazenar o último bloco do bucket que foi percorrido
+    int inicio_bucket = indice_bucket * BLOCK_SIZE * NUM_BLOCKS; //Inicio do Bucket no arquivo de dados
+    entrada.seekg(inicio_bucket);
+    
+    for (int i = 0; i < NUM_BLOCKS; i++)
     {
+        Bloco* bloco = new Bloco();
+        bloco->cabecalho = new BlocoCabecalho();
+        entrada.read(reinterpret_cast<char*>(bloco->cabecalho), sizeof(BlocoCabecalho));
+        entrada.read(reinterpret_cast<char*>(bloco->dados), BLOCK_SIZE - sizeof(BlocoCabecalho));
+    
         int tam = bloco->cabecalho->tamanho_disponivel;
         if (tam >= registro->tamanho)
         {   
+            int addr =  inicio_bucket; //Calcula o endereço do bloco no arquivo de dados
+            addr += (ultimo_bloco * BLOCK_SIZE) + sizeof(BlocoCabecalho) + bloco->cabecalho->posicoes_registros[bloco->cabecalho->quantidade_registros];
 
-            int soma =  indice_bucket * BLOCK_SIZE * NUM_BLOCKS; //Inicio do Bucket
-            soma += (bucket->ultimo_bloco * BLOCK_SIZE) + sizeof(BlocoCabecalho) + bloco->cabecalho->posicoes_registros[bloco->cabecalho->quantidade_registros];
-
-            RegArvore *reg = new RegArvore(registro->id, soma); // adiciona o registro à árvore b+ do indice primario;
-            RegArvore *reg2 = new RegArvore(gerar_inteiro(registro->title), soma); // adiciona o registro à árvore b+ do indice secundario;
-            
-            btree1.insert(reg);
-            btree2.insert(reg2);
-            inserir_registro_bloco(entrada, saida, bloco->cabecalho, registro, bucket->ultimo_bloco, indice_bucket); // adiciona o registro ao bloco
-            bucket->ultimo_bloco = 0;
-            return;
+            inserir_registro_bloco(entrada, saida, bloco, registro, ultimo_bloco, indice_bucket); // adiciona o registro ao bloco
+            destruirBloco(bloco); // desaloca o bloco da memória
+            return addr;
         }else{
-            bucket->ultimo_bloco++;
+            ultimo_bloco++;
+            destruirBloco(bloco); // desaloca o bloco da memória
+        }
+        if(i + 1 >= NUM_BLOCKS){
+            cout << "Erro: Não há espaço disponível para inserir o registro" << endl;
+            cout << "Registros inseridos: " << registro->id -1 << endl;
+            cout << "Não foi possivel gerar os arquivos de indice" << endl;
+            exit(1);
         }
     }
+    return -1;
 }
 
 //Função para buscar um registro no arquivo de dados
 Registro* buscar_registro(ifstream& leitura, int id_busca) {
     // Percorre os blocos do bucket
     for (int ultimo_bloco = 0; ultimo_bloco < NUM_BLOCKS; ultimo_bloco++) {
-        Bloco* bloco = criarBloco(ultimo_bloco);
+        Bloco* bloco = criarBloco();
         // Lê o cabeçalho do bloco
         int index_bucket = hashFunction(id_busca);
         leitura.seekg(index_bucket * BLOCK_SIZE * NUM_BLOCKS + (ultimo_bloco * BLOCK_SIZE));
@@ -141,7 +120,7 @@ Registro* buscar_registro(ifstream& leitura, int id_busca) {
                 // Verifica se o id do registro é igual ao id buscado
                 memcpy(&registro->id, &bloco->dados[posicao], sizeof(int));
                 if(registro->id == id_busca) {
-                    posicao = sizeof(int);
+                    posicao += sizeof(int);
                     // Deserializa o registro no bloco
                     registro->title = string((char *)&bloco->dados[posicao]);
                     posicao += registro->title.size() + 1;
@@ -167,14 +146,14 @@ Registro* buscar_registro(ifstream& leitura, int id_busca) {
                     cout << "Total de blocos no arquivo de dados: " << NUM_BLOCKS * NUM_BUCKETS << endl;
 
                     // Libera a memória alocada para o bloco
-                    delete bloco;
+                    destruirBloco(bloco);
 
                     // Retorna o registro encontrado
                     return registro;
                 }
             }
         }
-        delete bloco;
+        destruirBloco(bloco);
     }
 
     // Retorna NULL se o registro não for encontrado
