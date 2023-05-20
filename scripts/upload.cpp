@@ -12,8 +12,6 @@ using namespace std;
 
 int main(int argc, char const *argv[])
 {   
-    system("clear");
-
     // Definir a estrutura rusage para armazenar as informações sobre o uso de recursos
     struct rusage usage;
 
