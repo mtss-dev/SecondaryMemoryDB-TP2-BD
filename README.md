@@ -15,7 +15,7 @@ Na pasta [documentation](documentation/) conterá o arquivo:
 
 Na pasta [scripts](scripts/) conterá todos os scripts utilizados para a elaboração do trabalho, segue abaixo uma breve descrição sobre cada script:
 
-- [upload.cpp](scripts/upload.cpp): realiza a leitura do arquivo de entrada e armazena os dados em um arquivo binário organizado por hash, também constrói um arquivo de índice primário e secundário, que serão utilizado para a realização das consultas. A execução deste script é realizada através do comando: `g++ upload.cpp -o upload && ./upload <arquivo de entrada>`. Os arquivos gerados serão: `arquivo_de_dados.bin`, `indice_primario.bin` e `indice_secundario.bin`, que estarão na pasta [Arquivos](script/Arquivos/).
+- [upload.cpp](scripts/upload.cpp): realiza a leitura do arquivo de entrada e armazena os dados em um arquivo binário organizado por hash, também constrói um arquivo de índice primário e secundário, que serão utilizado para a realização das consultas. A execução deste script é realizada através do comando: `g++ upload.cpp -o upload && ./upload <arquivo de entrada>`. Os arquivos gerados serão: `arquivo_de_dados.bin`, `indice_primario.bin` e `indice_secundario.bin`, que estarão na pasta [Arquivos](scripts/Arquivos/).
 
 - [findrec.cpp](scripts/findrec.cpp): realiza a busca por um registro através do id de um artigo no arquivo organizado por hash  [arquivo_de_dados.bin](scripts/Arquivos/), a execução deste script é realizada através do comando: `g++ findrec.cpp -o findrec && ./findrec <id>`. O resultado da busca será impresso no terminal.
 
