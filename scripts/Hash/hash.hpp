@@ -147,14 +147,14 @@ Registro* buscar_registro(ifstream& leitura, int id_busca) {
                     cout << "Total de blocos no arquivo de dados: " << NUM_BLOCKS * NUM_BUCKETS << endl;
 
                     // Libera a memória alocada para o bloco
-                    delete bloco;
+                    destruirBloco(bloco);
 
                     // Retorna o registro encontrado
                     return registro;
                 }
             }
         }
-        delete bloco;
+        destruirBloco(bloco);
     }
 
     // Retorna NULL se o registro não for encontrado

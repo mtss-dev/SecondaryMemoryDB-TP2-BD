@@ -75,7 +75,6 @@ int main(int argc, char const *argv[])
                 delete reg2;
             }
             delete r;
-            r = nullptr;
         }
     }
     cout << "Arquivo de dados criado com sucesso!" << endl;

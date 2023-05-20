@@ -582,35 +582,35 @@ Registro* buscar_registro_bpt(string index_filename, ifstream& dataFile, int id_
 
         // Se não encontrou o registro
         if (reg == nullptr) {
-            return nullptr; 
-        } else {
-            registro = new Registro();
-            dataFile.seekg(reg->valor);
-            dataFile.read(reinterpret_cast<char*>(&registro->id), sizeof(int));
-
-            // Deserializa os demais campos do registro
-            getline(dataFile, registro->title, '\0');
-            dataFile.read(reinterpret_cast<char*>(&registro->year), sizeof(int));
-            getline(dataFile, registro->authors, '\0');
-            dataFile.read(reinterpret_cast<char*>(&registro->citations), sizeof(int));
-            getline(dataFile, registro->update, '\0');
-            getline(dataFile, registro->snippet, '\0');
-
-            registro->tamanho = sizeof(int) + registro->title.size() + 1 +
-                                sizeof(int) + registro->authors.size() + 1 +
-                                sizeof(int) + registro->update.size() + 1 +
-                                registro->snippet.size() + 1;
-
-            int totalNodes = countNodes(bpt.getroot());
-            cout << "Quantidade total de blocos do arquivo de índice primário: " << totalNodes << endl;
-
-            bpt.destroyTree(bpt.getroot()); // Libera a memória alocada para a árvore B+ (e seus nós)   
-            return registro; // Retorna o registro encontrado
+            bpt.destroyTree(bpt.getroot()); // Libera a memória alocada para a árvore B+ (e seus nós)
+            return nullptr;
         }
+
+        registro = new Registro();
+        dataFile.seekg(reg->valor);
+        dataFile.read(reinterpret_cast<char*>(&registro->id), sizeof(int));
+
+        // Deserializa os demais campos do registro
+        getline(dataFile, registro->title, '\0');
+        dataFile.read(reinterpret_cast<char*>(&registro->year), sizeof(int));
+        getline(dataFile, registro->authors, '\0');
+        dataFile.read(reinterpret_cast<char*>(&registro->citations), sizeof(int));
+        getline(dataFile, registro->update, '\0');
+        getline(dataFile, registro->snippet, '\0');
+
+        registro->tamanho = sizeof(int) + registro->title.size() + 1 +
+                            sizeof(int) + registro->authors.size() + 1 +
+                            sizeof(int) + registro->update.size() + 1 +
+                            registro->snippet.size() + 1;
+
+        int totalNodes = countNodes(bpt.getroot());
+        cout << "Quantidade total de blocos do arquivo de índice primário: " << totalNodes << endl;
+
+        bpt.destroyTree(bpt.getroot()); // Libera a memória alocada para a árvore B+ (e seus nós)
     }
+
     delete node; // Libera a memória alocada para o nó
-    bpt.destroyTree(bpt.getroot()); // Libera a memória alocada para a árvore B+ (e seus nós)   
-    return registro;
+    return registro; // Retorna o registro encontrado ou nullptr se não encontrado
 }
 
 #endif //BPTREE_BPTREE_H
