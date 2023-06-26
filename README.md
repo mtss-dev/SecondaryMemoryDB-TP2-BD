@@ -4,6 +4,9 @@
 
 - Dados de entrada foram fornecidos pelo professor da disciplina, o arquivo de dados possui id, título, ano, autores, citações, atualizações e um breve resumo de artigos científicos. 
 
+## Nota
+
+Obtemos nota 9.97 neste trabalho.
 
 ## Documentação
 
